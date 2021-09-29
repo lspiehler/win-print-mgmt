@@ -1,0 +1,106 @@
+<!--<h1>{{title}}</h1>
+<p>Welcome to {{title}}</p>-->
+<form onsubmit="submitForm(); return false;">
+    <table>
+        <tr><td>Servers:</td><td><select id="servers" multiple>
+            <option value="DESKTOP-UF8E9D4">DESKTOP-UF8E9D4</option>
+            <option value="DESKTOP-UF8E9D4">DESKTOP-UF8E9D4</option>
+    {{#each inventory}}
+            <option value="{{this.name}}">{{this.name}}</option>
+    {{/each}}
+        </select></td></tr>
+
+    <tr><td>Queue Name:</td><td><input type="text" id="queue" /></td></tr>
+    <tr><td>Port FQDN/IP:</td><td><input type="text" id="port" /></td></tr>
+        <tr>
+            <td>Trays</td>
+            <td>
+                <select id="trays" multiple>
+                    <option value="1">1</options>
+                    <option value="2">2</options>
+                    <option value="3">3</options>
+                    <option value="4">4</options>
+                </select>
+                <button onclick="clearTrays();">Clear Tray Selection</button>
+            </td>
+        </tr>
+        <tr><td colspan=2><input type="submit" value="Submit" /></td></tr>
+    </table>
+
+<script>
+    function clearTrays() {
+        let trays = document.getElementById('trays');
+        for(let i = 0; i <= trays.options.length - 1; i++) {
+            trays.options[i].selected = false;
+        }
+    }
+
+    function getSelectedOptions(elem, prop) {
+        if(!prop) {
+            prop = 'value';
+        }
+        let options = [];
+        for(let i = 0; i <= elem.options.length - 1; i++) {
+            if(elem.options[i].selected===true) {
+                options.push(elem.options[i][prop]);
+            }
+        }
+
+        return options;
+    }
+
+    function submitForm() {
+        var properties = {};
+
+        let elems = ['input', 'select', 'button']
+        for(let h = 0; h <= elems.length - 1; h++) {
+            let input = document.getElementsByTagName(elems[h]);
+            for(let i = 0; i <= input.length - 1; i++) {
+                if(input[i].id) {
+                    if(properties.hasOwnProperty(input[i].id)) {
+                        alert('Form contains elements with duplicate IDs');
+                    } else {
+                        properties[input[i].id] = input[i];
+                    }
+                } else {
+                    //console.log('Found element with no id');
+                    //console.log(input[i]);
+                }
+            }
+        }
+
+        //check for required values
+        let reqstr = ['queue', 'port'];
+        for(let i = 0; i <= reqstr.length - 1; i++) {
+            if(properties[reqstr[i]].value.trim() == '') {
+                alert('You must enter a value for ' + reqstr[i]);
+                return false;
+            }
+        }
+
+        if(getSelectedOptions(properties.servers).length <= 0) {
+            alert('You must select one or more servers.');
+                return false;
+        }
+
+        let request = {
+            servers: getSelectedOptions(properties.servers),
+            name: properties.queue.value,
+            ports: [ properties.port.value ],
+            trays: getSelectedOptions(properties.trays)
+        }
+
+        request = {
+            servers: getSelectedOptions(properties.servers),
+            ports: [ properties.port.value, '192.168.1.103', '192.168.1.104' ]
+        }
+        portjob = new portJob();
+        portjob.create(request, function(err, resp) {
+            if(err) {
+                console.log(err);
+            } else {
+                console.log(resp);
+            }
+        });
+    }
+</script>
