@@ -3,19 +3,26 @@
 <form onsubmit="submitForm(); return false;">
     <table>
         <tr><td>Servers:</td><td><select id="servers" multiple>
-            <option value="DESKTOP-UF8E9D4">DESKTOP-UF8E9D4</option>
-            <option value="DESKTOP-UF8E9D4">DESKTOP-UF8E9D4</option>
+            <option value="DESKTOP-UF8E9D5">DESKTOP-UF8E9D5</option>
+            <option value="DESKTOP-UF8E9D6">DESKTOP-UF8E9D6</option>
     {{#each inventory}}
             <option value="{{this.name}}">{{this.name}}</option>
     {{/each}}
         </select></td></tr>
 
+        <tr><td>Driver:</td><td><select id="driver">
+            <option value="Canon MF731C/733C UFR II">Canon MF731C/733C UFR II</option>
+        </select></td></tr>
+
     <tr><td>Queue Name:</td><td><input type="text" id="queue" /></td></tr>
     <tr><td>Port FQDN/IP:</td><td><input type="text" id="port" /></td></tr>
+    <tr><td>Location:</td><td><input type="text" id="location" /></td></tr>
+    <tr><td>Comment:</td><td><input type="text" id="comment" /></td></tr>
         <tr>
             <td>Trays</td>
             <td>
                 <select id="trays" multiple>
+                    <option value="0">0</options>
                     <option value="1">1</options>
                     <option value="2">2</options>
                     <option value="3">3</options>
@@ -94,13 +101,69 @@
             servers: getSelectedOptions(properties.servers),
             ports: [ properties.port.value, '192.168.1.103', '192.168.1.104' ]
         }
-        portjob = new portJob();
-        portjob.create(request, function(err, resp) {
+        /*let portjob = new portJob();
+        let portjobs = portjob.createJobQueue(request);
+        portjob.processJobs(portjobs,
+        function(e) {
+            console.log(e);
+        },
+        function(err, resp) {
             if(err) {
                 console.log(err);
             } else {
                 console.log(resp);
             }
-        });
+        });*/
+
+        let trays = getSelectedOptions(properties.trays);
+        if(trays.length <= 0) {
+            trays = [0];
+        }
+
+        request = {
+            servers: getSelectedOptions(properties.servers),
+            queues: [ 
+                {
+                    name: properties.queue.value,
+                    port: properties.port.value,
+                    comment: properties.comment.value,
+                    location: properties.location.value,
+                    trays: trays,
+                    driver: getSelectedOptions(properties.driver)[0],
+                },
+                {
+                    name: 'Test 2',
+                    port: '192.168.1.103',
+                    comment: '',
+                    location: '',
+                    trays: [1, 2],
+                    driver: getSelectedOptions(properties.driver)[0],
+                }
+            ]
+        }
+
+        //console.log(request);
+
+        let printerjob = new printerJob();
+        let printerjobs = printerjob.createJobQueue(request);
+        console.log(printerjobs);
+        /*printerjob.processJobs(printerjobs,
+        function(e) {
+            console.log(e);
+        },
+        function(err, resp) {
+            if(err) {
+                console.log(err);
+            } else {
+                console.log(resp);
+            }
+        });*/
+        /*printerjob.create(request, function(err, resp) {
+            if(err) {
+                console.log(err);
+            } else {
+                console.log(resp);
+            }
+        });*/
     }
 </script>
