@@ -41,7 +41,6 @@ router.get('/server/:object/:action', function(req, res, next) {
 
 router.post('/server/:object/:action', function(req, res, next) {
     if(serverapi.hasOwnProperty(req.params.object) && serverapi[req.params.object].hasOwnProperty(req.params.action)) {
-        console.log(req.body);
         serverapi[req.params.object][req.params.action](req.body, function(err, resp) {
             if(resp.headers) {
                 for(let i = 0; i <= resp.headers.length - 1; i++) {
