@@ -100,7 +100,7 @@
 
         request = {
             servers: getSelectedOptions(properties.servers),
-            ports: [ properties.port.value, '192.168.1.103', '192.168.1.104' ]
+            ports: [ properties.port.value ]
         }
         let portjob = new portJob();
         let portjobs = portjob.createJobQueue(request);
@@ -126,14 +126,6 @@
                             comment: properties.comment.value,
                             location: properties.location.value,
                             trays: trays,
-                            driver: getSelectedOptions(properties.driver)[0],
-                        },
-                        {
-                            name: 'Test 2',
-                            port: '192.168.1.103',
-                            comment: '',
-                            location: '',
-                            trays: [1, 2],
                             driver: getSelectedOptions(properties.driver)[0],
                         }
                     ]
