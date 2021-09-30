@@ -1,7 +1,7 @@
 const server = require('../../../lib/server');
 
 module.exports = function(params, callback) {
-    server.inventory.list(params, function(err, inventory) {
+    server.inventory.ping(params, function(err, resp) {
         if(err) {
             let result = {
                 status: 500,
@@ -20,7 +20,7 @@ module.exports = function(params, callback) {
                 body: {
                     result: 'success',
                     message: err,
-                    data: inventory
+                    data: resp
                 }
             }
             callback(false, result);
