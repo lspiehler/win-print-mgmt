@@ -101,7 +101,7 @@
             servers: getSelectedOptions(properties.servers),
             ports: [ properties.port.value, '192.168.1.103', '192.168.1.104' ]
         }
-        /*let portjob = new portJob();
+        let portjob = new portJob();
         let portjobs = portjob.createJobQueue(request);
         portjob.processJobs(portjobs,
         function(e) {
@@ -111,59 +111,50 @@
             if(err) {
                 console.log(err);
             } else {
-                console.log(resp);
-            }
-        });*/
-
-        let trays = getSelectedOptions(properties.trays);
-        if(trays.length <= 0) {
-            trays = [0];
-        }
-
-        request = {
-            servers: getSelectedOptions(properties.servers),
-            queues: [ 
-                {
-                    name: properties.queue.value,
-                    port: properties.port.value,
-                    comment: properties.comment.value,
-                    location: properties.location.value,
-                    trays: trays,
-                    driver: getSelectedOptions(properties.driver)[0],
-                },
-                {
-                    name: 'Test 2',
-                    port: '192.168.1.103',
-                    comment: '',
-                    location: '',
-                    trays: [1, 2],
-                    driver: getSelectedOptions(properties.driver)[0],
+                let trays = getSelectedOptions(properties.trays);
+                if(trays.length <= 0) {
+                    trays = [0];
                 }
-            ]
-        }
 
-        //console.log(request);
+                request = {
+                    servers: getSelectedOptions(properties.servers),
+                    queues: [ 
+                        {
+                            name: properties.queue.value,
+                            port: properties.port.value,
+                            comment: properties.comment.value,
+                            location: properties.location.value,
+                            trays: trays,
+                            driver: getSelectedOptions(properties.driver)[0],
+                        },
+                        {
+                            name: 'Test 2',
+                            port: '192.168.1.103',
+                            comment: '',
+                            location: '',
+                            trays: [1, 2],
+                            driver: getSelectedOptions(properties.driver)[0],
+                        }
+                    ]
+                }
 
-        let printerjob = new printerJob();
-        let printerjobs = printerjob.createJobQueue(request);
-        console.log(printerjobs);
-        /*printerjob.processJobs(printerjobs,
-        function(e) {
-            console.log(e);
-        },
-        function(err, resp) {
-            if(err) {
-                console.log(err);
-            } else {
-                console.log(resp);
+                //console.log(request);
+
+                let printerjob = new printerJob();
+                let printerjobs = printerjob.createJobQueue(request);
+                //console.log(printerjobs);
+                printerjob.processJobs(printerjobs,
+                function(e) {
+                    console.log(e);
+                },
+                function(err, resp) {
+                    if(err) {
+                        console.log(err);
+                    } else {
+                        console.log(resp);
+                    }
+                });
             }
-        });*/
-        /*printerjob.create(request, function(err, resp) {
-            if(err) {
-                console.log(err);
-            } else {
-                console.log(resp);
-            }
-        });*/
+        });
     }
 </script>

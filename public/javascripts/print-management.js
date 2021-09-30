@@ -9,39 +9,26 @@ function httpRequest(params, callback) {
     }
     
     request.onload = function() {
-        if (request.status >= 200 && request.status < 301) {
-            // Success!
+        //if (request.status >= 200 && request.status < 301) {
+        try {
             var resp = {
                 id: params.id,
                 statusCode: request.status,
                 body: JSON.parse(request.responseText)
             }
-            if(resp.body.error) {
-                callback(resp.body.error, resp);
-            } else if(resp.body.success==false) {
-                callback(resp.body.message, resp);
-            } else {
-                callback(null, resp);
+            callback(null, resp);
+        } catch(e) {
+            var resp = {
+                id: params.id,
+                statusCode: request.status,
+                body: request.responseText
             }
-            return;
-            //var key = document.getElementById('key');
-            //key.innerText = resp.command + '\r\n\r\n' + resp.key;
-            //var csroptions = getCSRParams();
-            //generateCSR(resp.key, csroptions);
-        } else if(request.status == 401) {
-            window.location = '/auth/login';
-        } else if(request.status >= 400) {
-            alert('Invalid response from the server');
-        } else {
-            // We reached our target server, but it returned an error
-            var resp = JSON.parse(request.responseText);
-            callback(resp.error, null);
-            return;
+            callback(e, resp);
         }
     };
 
-    request.onerror = function() {
-        callback('Communication error', null);
+    request.onerror = function(e) {
+        callback(e, null);
         return;
         // There was a connection error of some sort
     };
@@ -88,7 +75,7 @@ var printerJob = function() {
                 let job = jobqueue.shift();
                 queue.push(job);
                 let options = {
-                    path: '/api/printer/port/create',
+                    path: '/api/printer/queue/create',
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -96,9 +83,15 @@ var printerJob = function() {
                 }
 
                 let body = {
-                    ip: job.ip,
-                    server: job.server
+                    id: job.id,
+                    server: job.server,
+                    name: job.name,
+                    driver: job.driver,
+                    port: job.port,
+                    location: job.location,
+                    comment: job.comment
                 }
+
                 httpRequest({options: options, body: body, id: job.id}, function(err, resp) {
                     //if(err) {
                     //    callback(err, false);
@@ -130,7 +123,7 @@ var printerJob = function() {
             //console.log(params.queues[i].name);
             while(trayindex <= params.queues[i].trays.length - 1) {
                 while(serverindex <= params.servers.length - 1) {
-                    console.log(params.queues[i].name + '-' + params.queues[i].trays[trayindex] + ' - ' + params.servers[serverindex]);
+                    //console.log(params.queues[i].name + '-' + params.queues[i].trays[trayindex] + ' - ' + params.servers[serverindex]);
                     //console.log(params.servers[serverindex]);
                     let name = params.queues[i].name;
                     if(params.queues[i].trays[trayindex] != 0) {
@@ -216,6 +209,7 @@ var portJob = function() {
                     ip: job.ip,
                     server: job.server
                 }
+
                 httpRequest({options: options, body: body, id: job.id}, function(err, resp) {
                     //if(err) {
                     //    callback(err, false);
