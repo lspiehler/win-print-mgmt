@@ -17,6 +17,7 @@
     <tr><td>Port FQDN/IP:</td><td><input type="text" id="port" /></td></tr>
     <tr><td>Location:</td><td><input type="text" id="location" /></td></tr>
     <tr><td>Comment:</td><td><input type="text" id="comment" /></td></tr>
+    <tr><td>Shared:</td><td><input type="checkbox" id="shared" /></td></tr>
         <tr>
             <td>Trays</td>
             <td>
@@ -149,6 +150,7 @@
                             comment: properties.comment.value,
                             location: properties.location.value,
                             trays: trays,
+                            shared: properties.shared.checked,
                             driver: getSelectedOptions(properties.driver)[0],
                         }
                     ]

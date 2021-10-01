@@ -107,6 +107,7 @@ var printerJob = function() {
                     server: job.server,
                     name: job.name,
                     driver: job.driver,
+                    shared: job.shared,
                     port: job.port,
                     location: job.location,
                     comment: job.comment
@@ -154,6 +155,7 @@ var printerJob = function() {
                         server: params.servers[serverindex],
                         name: name,
                         driver: params.queues[i].driver,
+                        shared: params.queues[i].shared,
                         port: params.queues[i].port,
                         location: params.queues[i].location,
                         comment: params.queues[i].comment
