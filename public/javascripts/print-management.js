@@ -12,9 +12,11 @@ function httpRequest(params, callback) {
         //if (request.status >= 200 && request.status < 301) {
         try {
             var resp = {
-                id: params.id,
                 statusCode: request.status,
                 body: JSON.parse(request.responseText)
+            }
+            if(params.hasOwnProperty('id')) {
+                resp.id = params.id
             }
             callback(null, resp);
         } catch(e) {
@@ -38,6 +40,24 @@ function httpRequest(params, callback) {
     } else {
         request.send();
     }
+}
+
+var getCommonDrivers = function(params, callback) {
+    let options = {
+        path: '/api/printer/driver/listcommon',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }
+
+    let body = {
+        servers: params.servers
+    }
+
+    httpRequest({options: options, body: body}, function(err, resp) {
+        callback(err, resp);
+    });
 }
 
 var printerJob = function() {

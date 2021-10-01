@@ -11,9 +11,7 @@
         </select></td></tr>
 
         <tr><td>Driver:</td><td><select id="driver">
-            <option value="Canon MF731C/733C UFR II">Canon MF731C/733C UFR II</option>
-            <option value="HP Universal Printing PCL 6">HP Universal Printing PCL 6</option>
-        </select></td></tr>
+        </select><button type="button" onclick="getDrivers();">Get Drivers</button></td></tr>
 
     <tr><td>Queue Name:</td><td><input type="text" id="queue" /></td></tr>
     <tr><td>Port FQDN/IP:</td><td><input type="text" id="port" /></td></tr>
@@ -29,7 +27,7 @@
                     <option value="3">3</options>
                     <option value="4">4</options>
                 </select>
-                <button onclick="clearTrays();">Clear Tray Selection</button>
+                <button type="button" onclick="clearTrays();">Clear Tray Selection</button>
             </td>
         </tr>
         <tr><td colspan=2><input type="submit" value="Submit" /></td></tr>
@@ -57,7 +55,26 @@
         return options;
     }
 
-    function submitForm() {
+    function getDrivers() {
+        let properties = getInputElements();
+        
+        getCommonDrivers({ servers: getSelectedOptions(properties.servers) }, function(err, drivers) {
+            if(err) {
+                //console.log(err);
+            } else {
+                let driver = document.getElementById('driver');
+                driver.options.length = 0;
+                for(let i = 0; i <= drivers.body.length - 1; i++) {
+                    var option = document.createElement("option");
+                    option.text = drivers.body[i];
+                    option.value = drivers.body[i];
+                    driver.add(option);
+                }
+            }
+        });
+    }
+
+    function getInputElements() {
         var properties = {};
 
         let elems = ['input', 'select', 'button']
@@ -76,6 +93,12 @@
                 }
             }
         }
+
+        return properties;
+    }
+
+    function submitForm() {
+        let properties = getInputElements();
 
         //check for required values
         let reqstr = ['queue', 'port'];
