@@ -1,0 +1,200 @@
+<!--<h1>{{title}}</h1>
+<p>Welcome to {{title}}</p>-->
+<form onsubmit="submitForm(); return false;">
+    <table>
+        <tr><td>Servers:</td><td><select id="servers" multiple>
+            <!--<option value="DESKTOP-UF8E9D5">DESKTOP-UF8E9D5</option>
+            <option value="DESKTOP-UF8E9D6">DESKTOP-UF8E9D6</option>
+            <option value="DESKTOP-UF8E9D7">DESKTOP-UF8E9D7</option>
+            <option value="DESKTOP-UF8E9D8">DESKTOP-UF8E9D8</option>-->
+    {{#each inventory}}
+            <option value="{{this.name}}">{{this.name}}</option>
+    {{/each}}
+        </select></td></tr>
+
+        <tr><td>Driver:</td><td><select id="driver">
+        </select><button type="button" onclick="getDrivers();">Get Drivers</button></td></tr>
+
+    <tr><td>Queue Name:</td><td><input type="text" id="queue" value="TestPrinter" /></td></tr>
+    <tr><td>Port FQDN/IP:</td><td><input type="text" id="port" value="192.168.1.120" /></td></tr>
+    <tr><td>Location:</td><td><input type="text" id="location" /></td></tr>
+    <tr><td>Comment:</td><td><input type="text" id="comment" /></td></tr>
+    <tr><td>Shared:</td><td><input type="checkbox" id="shared" /></td></tr>
+        <tr>
+            <td>Trays</td>
+            <td>
+                <select id="trays" multiple>
+                    <option value="0">0</options>
+                    <option value="1">1</options>
+                    <option value="2">2</options>
+                    <option value="3">3</options>
+                    <option value="4">4</options>
+                </select>
+                <button type="button" onclick="clearTrays();">Clear Tray Selection</button>
+            </td>
+        </tr>
+        <tr><td colspan=2><input type="submit" value="Submit" /></td></tr>
+    </table>
+
+<script>
+    function clearTrays() {
+        let trays = document.getElementById('trays');
+        for(let i = 0; i <= trays.options.length - 1; i++) {
+            trays.options[i].selected = false;
+        }
+    }
+
+    function getSelectedOptions(elem, prop) {
+        if(!prop) {
+            prop = 'value';
+        }
+        let options = [];
+        for(let i = 0; i <= elem.options.length - 1; i++) {
+            if(elem.options[i].selected===true) {
+                options.push(elem.options[i][prop]);
+            }
+        }
+
+        return options;
+    }
+
+    function getDrivers() {
+        let properties = getInputElements();
+        
+        getCommonDrivers({ servers: getSelectedOptions(properties.servers) }, function(err, drivers) {
+            if(err) {
+                //console.log(err);
+            } else {
+                let driver = document.getElementById('driver');
+                driver.options.length = 0;
+                for(let i = 0; i <= drivers.body.length - 1; i++) {
+                    var option = document.createElement("option");
+                    option.text = drivers.body[i];
+                    option.value = drivers.body[i];
+                    driver.add(option);
+                }
+            }
+        });
+    }
+
+    function getInputElements() {
+        var properties = {};
+
+        let elems = ['input', 'select', 'button']
+        for(let h = 0; h <= elems.length - 1; h++) {
+            let input = document.getElementsByTagName(elems[h]);
+            for(let i = 0; i <= input.length - 1; i++) {
+                if(input[i].id) {
+                    if(properties.hasOwnProperty(input[i].id)) {
+                        alert('Form contains elements with duplicate IDs');
+                    } else {
+                        properties[input[i].id] = input[i];
+                    }
+                } else {
+                    //console.log('Found element with no id');
+                    //console.log(input[i]);
+                }
+            }
+        }
+
+        return properties;
+    }
+
+    function submitForm() {
+        let properties = getInputElements();
+
+        //check for required values
+        let reqstr = ['queue', 'port'];
+        for(let i = 0; i <= reqstr.length - 1; i++) {
+            if(properties[reqstr[i]].value.trim() == '') {
+                alert('You must enter a value for ' + reqstr[i]);
+                return false;
+            }
+        }
+
+        if(getSelectedOptions(properties.servers).length <= 0) {
+            alert('You must select one or more servers.');
+                return false;
+        }
+
+        let request = {
+            servers: getSelectedOptions(properties.servers),
+            objects: [
+                {
+                    ip: properties.port.value
+                },
+                {
+                    ip: '192.168.1.121'
+                },
+                {
+                    ip: '192.168.1.122'
+                },
+                {
+                    ip: '192.168.1.123'
+                }
+            ]
+        }
+        /*let portjob = new portJob();
+        let portjobs = portjob.createJobQueue(request);*/
+        let jobmanager = new jobManager({maxqueue: 4});
+        jobmanager.processJobs(request, '/api/printer/port/create',
+        //portjob.processJobs(portjobs,
+        function(e) {
+            console.log(e);
+        },
+        function(err, resp) {
+            if(err) {
+                console.log(err);
+            } else {
+                console.log('ports done');
+                let trays = getSelectedOptions(properties.trays);
+                if(trays.length <= 0) {
+                    trays = [0];
+                }
+
+                request = {
+                    servers: getSelectedOptions(properties.servers),
+                    objects: []
+                }
+
+                let driver = getSelectedOptions(properties.driver)[0];
+
+                for(let i = 0; i <= trays.length - 1; i++) {
+                    let name;
+                    if(trays[i]=='0') {
+                        name = properties.queue.value;
+                    } else {
+                        name = properties.queue.value + 'T-' + trays[i]
+                    }
+                        request.objects.push(
+                            {
+                                name: name,
+                                port: properties.port.value,
+                                comment: properties.comment.value,
+                                location: properties.location.value,
+                                shared: properties.shared.checked,
+                                driver: driver,
+                            }
+                        );
+                }
+
+                console.log(request);
+
+                let jobmanager = new jobManager({maxqueue: 4});
+                //let printerjobs = printerjob.createJobQueue(request);
+                //console.log(printerjobs);
+                jobmanager.processJobs(request, '/api/printer/queue/create',
+                function(e) {
+                    console.log(e);
+                },
+                function(err, resp) {
+                    if(err) {
+                        console.log(err);
+                    } else {
+                        console.log(resp);
+                    }
+                });
+            }
+        });
+    }
+</script>

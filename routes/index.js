@@ -13,4 +13,14 @@ router.get('/', function(req, res, next) {
   });
 });
 
+router.get('/create-print-queue', function(req, res, next) {
+  server.inventory.list({}, function(err, inventory) {
+    if(err) {
+      res.render('error', { message: err });
+    } else {
+      res.render('create-print-queue', { inventory: inventory });
+    }
+  });
+});
+
 module.exports = router;

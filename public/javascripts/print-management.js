@@ -173,7 +173,7 @@ var printerJob = function() {
     }
 }
 
-var jobManager = function() {
+var jobManager = function(params) {
     var reqqueue = {};
     var jobqueue = {};
     var respqueue = {};
@@ -181,6 +181,10 @@ var jobManager = function() {
     var apipath;
     var jobcallback;
     var eventcallback;
+
+    if(params.maxqueue >= 1) {
+        maxqueue = params.maxqueue;
+    }
 
     this.processJobs = function(req, path, e, callback) {
         jobcallback = callback;
@@ -203,7 +207,7 @@ var jobManager = function() {
                 reqqueue[req.servers[i]].push(job);
             }
         }
-        //console.log(reqqueue);
+        console.log(reqqueue);
         let reqkeys = Object.keys(reqqueue)
         for(let i = 0; i <= reqkeys.length - 1; i++) {
             //console.log(reqqueue[reqkeys[i]]);
