@@ -18,7 +18,7 @@ module.exports = function(params, callback) {
             let result = {
                 status: resp.statusCode,
                 headers: [],
-                body: JSON.parse(resp.body)
+                body: resp.body
             }
             callback(false, result);
         }
