@@ -15,13 +15,11 @@ function httpRequest(params, callback) {
                 statusCode: request.status,
                 body: JSON.parse(request.responseText)
             }
-            if(params.hasOwnProperty('id')) {
-                resp.id = params.id
-            }
             callback(null, resp);
         } catch(e) {
             var resp = {
                 id: params.id,
+                options: params.options,
                 statusCode: request.status,
                 body: request.responseText
             }
@@ -175,6 +173,93 @@ var printerJob = function() {
     }
 }
 
+var jobManager = function() {
+    var reqqueue = {};
+    var jobqueue = {};
+    var respqueue = {};
+    var maxqueue = 2;
+    var apipath;
+    var jobcallback;
+    var eventcallback;
+
+    this.processJobs = function(req, path, e, callback) {
+        jobcallback = callback;
+        //jobqueue = jobs;
+        apipath = path;
+        eventcallback = e;
+        for(let i = 0; i <= req.servers.length - 1; i++) {
+            reqqueue[req.servers[i]] = [];
+            jobqueue[req.servers[i]] = 0;
+            respqueue[req.servers[i]] = [];
+            for(let j = 0; j <= req.objects.length - 1; j++) {
+                //let reqobj = req.objects[j];
+                //reqobj.server = req.servers[i];
+                let job = {};
+                let properties = Object.keys(req.objects[j]);
+                for(let k = 0; k <= properties.length - 1; k++) {
+                    job[properties[k]] = req.objects[j][properties[k]];
+                }
+                job.server = req.servers[i];
+                reqqueue[req.servers[i]].push(job);
+            }
+        }
+        //console.log(reqqueue);
+        let reqkeys = Object.keys(reqqueue)
+        for(let i = 0; i <= reqkeys.length - 1; i++) {
+            //console.log(reqqueue[reqkeys[i]]);
+            //console.log(reqkeys[i]);
+            processJobs(reqkeys[i]);
+        }
+    }
+
+    var queueFinished = function(queue) {
+        delete jobqueue[queue];
+        //console.log(Object.keys(jobqueue).length);
+        if(Object.keys(jobqueue).length <= 0) {
+            jobcallback(false, respqueue);
+        }
+    }
+
+    var processJobs = function(queue) {
+        //console.log(jobqueue.length);
+        //console.log(queue.length);
+        if(reqqueue[queue].length > 0) {
+            if(jobqueue[queue] < maxqueue) {
+                let job = reqqueue[queue].shift();
+                console.log(job);
+                jobqueue[queue] = jobqueue[queue] + 1;
+                let options = {
+                    path: apipath,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+
+                let body = job;
+
+                httpRequest({options: options, body: body}, function(err, resp) {
+                    //if(err) {
+                    //    callback(err, false);
+                    //    return false;
+                    //} else {
+                        jobqueue[queue] = jobqueue[queue] - 1;
+                        //updateQueue(resp.id);
+                        //eventcallback(resp);
+                        respqueue[queue].push(resp);
+                        processJobs(queue);
+                    //}
+                });
+                processJobs(queue);
+            }
+        } else {
+            if(jobqueue[queue] <= 0) {
+                queueFinished(queue);
+            }
+        }
+    }
+}
+
 var portJob = function() {
     var queue = [];
     var jobqueue = [];
@@ -262,7 +347,7 @@ var portJob = function() {
             while(serverindex <= params.servers.length - 1) {
                 let job = {
                     id: jobid,
-                    ip: params.ports[portindex],
+                    ip: params.ports[portindex].ip,
                     server: params.servers[serverindex]
                 }
                 queue.push(job);

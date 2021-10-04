@@ -3,8 +3,10 @@
 <form onsubmit="submitForm(); return false;">
     <table>
         <tr><td>Servers:</td><td><select id="servers" multiple>
-            <!--<option value="DESKTOP-UF8E9D5">DESKTOP-UF8E9D5</option>
-            <opton value="DESKTOP-UF8E9D6">DESKTOP-UF8E9D6</option>-->
+            <!--<option value="DESKTOP-UF8E9D5">DESKTOP-UF8E9D5</option>-->
+            <option value="DESKTOP-UF8E9D6">DESKTOP-UF8E9D6</option>
+            <option value="DESKTOP-UF8E9D7">DESKTOP-UF8E9D7</option>
+            <option value="DESKTOP-UF8E9D8">DESKTOP-UF8E9D8</option>
     {{#each inventory}}
             <option value="{{this.name}}">{{this.name}}</option>
     {{/each}}
@@ -13,8 +15,8 @@
         <tr><td>Driver:</td><td><select id="driver">
         </select><button type="button" onclick="getDrivers();">Get Drivers</button></td></tr>
 
-    <tr><td>Queue Name:</td><td><input type="text" id="queue" /></td></tr>
-    <tr><td>Port FQDN/IP:</td><td><input type="text" id="port" /></td></tr>
+    <tr><td>Queue Name:</td><td><input type="text" id="queue" value="TestPrinter" /></td></tr>
+    <tr><td>Port FQDN/IP:</td><td><input type="text" id="port" value="192.168.1.120" /></td></tr>
     <tr><td>Location:</td><td><input type="text" id="location" /></td></tr>
     <tr><td>Comment:</td><td><input type="text" id="comment" /></td></tr>
     <tr><td>Shared:</td><td><input type="checkbox" id="shared" /></td></tr>
@@ -124,11 +126,26 @@
 
         request = {
             servers: getSelectedOptions(properties.servers),
-            ports: [ properties.port.value ]
+            objects: [
+                {
+                    ip: properties.port.value
+                },
+                {
+                    ip: '192.168.1.121'
+                },
+                {
+                    ip: '192.168.1.122'
+                },
+                {
+                    ip: '192.168.1.123'
+                }
+            ]
         }
-        let portjob = new portJob();
-        let portjobs = portjob.createJobQueue(request);
-        portjob.processJobs(portjobs,
+        /*let portjob = new portJob();
+        let portjobs = portjob.createJobQueue(request);*/
+        let jobmanager = new jobManager();
+        jobmanager.processJobs(request, '/api/printer/port/create',
+        //portjob.processJobs(portjobs,
         function(e) {
             console.log(e);
         },
@@ -136,7 +153,7 @@
             if(err) {
                 console.log(err);
             } else {
-                let trays = getSelectedOptions(properties.trays);
+                /*let trays = getSelectedOptions(properties.trays);
                 if(trays.length <= 0) {
                     trays = [0];
                 }
@@ -171,7 +188,8 @@
                     } else {
                         console.log(resp);
                     }
-                });
+                });*/
+                console.log('done');
             }
         });
     }
