@@ -1,11 +1,26 @@
 const printer = require('../../../lib/printer');
 
 module.exports = function(params, callback) {
-    printer.queue.list(params, function(err, resp) {
+    new printer.queue.list().query(params, function(err, resp) {
         if(err) {
-            callback(err, false);
+            let result = {
+                status: 500,
+                headers: [],
+                body: {
+                    result: 'error',
+                    message: err,
+                    data: null
+                }
+            }
+            callback(err, result);
         } else {
-            callback(false, resp);
+            //console.log(resp);
+            let result = {
+                status: 200,
+                headers: [],
+                body: resp
+            }
+            callback(false, result);
         }
     });
 }
