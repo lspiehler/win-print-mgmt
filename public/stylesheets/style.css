@@ -8,6 +8,8 @@ a {
 }
 
 table.display td {
-  padding: 3px 10px;
-  white-space:nowrap;
+  max-width: 200px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }

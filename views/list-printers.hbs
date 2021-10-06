@@ -9,7 +9,7 @@
     </table>
     <input type="submit" class="btn btn-primary" value="Submit" />
 </form>
-<table id="example" class="display" width="100%"></table>
+<table id="example" class="display" style="width: 100%"></table>
 <script>
     var submitForm = function() {
         let properties = getInputElements();
@@ -75,7 +75,7 @@
                     data: "Servers",
                     title: "Servers",
                     render: function() {
-                        return 'test'
+                        return data.length
                     }
                 },
             ]
