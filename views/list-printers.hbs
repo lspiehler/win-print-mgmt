@@ -1,60 +1,84 @@
 <!--<h1>{{data}}</h1>-->
+<form onsubmit="submitForm(); return false;">
+    <table>
+        <tr><td>Servers:</td><td><select class="form-control" id="servers" multiple>
+    {{#each inventory}}
+            <option value="{{this.name}}">{{this.name}}</option>
+    {{/each}}
+        </select></td></tr>
+    </table>
+    <input type="submit" class="btn btn-primary" value="Submit" />
+</form>
 <table id="example" class="display" width="100%"></table>
 <script>
-    window.onload = function() {
-        listPrinters({}, function(err, printers) {
-            $(document).ready(function() {
-                $('#example').DataTable( {
-                    data: printers.body,
-                    select: {
-                        style:    'os',
-                        selector: 'td:first-child'
-                    },
-                    columns: [
-                        {
-                            title: '',
-                            render: function() {
-                                return '<input type="checkbox" name="queue" />';
-                            }
-                        },
-                        { 
-                            data: "Name",
-                            title: "Name"
-                        },
-                        { 
-                            data: "PortName",
-                            title: "Port"
-                        },
-                        { 
-                            data: "DriverName",
-                            title: "Driver"
-                        },
-                        { 
-                            data: "Location",
-                            title: "Location"
-                        },
-                        { 
-                            data: "Comment",
-                            title: "Comment"
-                        },
-                        { 
-                            data: "Shared",
-                            title: "Shared"
-                        },
-                        { 
-                            data: "ShareName",
-                            title: "ShareName"
-                        },
-                        { 
-                            data: "Servers",
-                            title: "Servers",
-                            render: function() {
-                                return 'test'
-                            }
-                        },
-                    ]
+    var submitForm = function() {
+        let properties = getInputElements();
+
+        console.log(getSelectedOptions(properties.servers));
+
+        listPrinters({ servers: getSelectedOptions(properties.servers) }, function(err, printers) {
+            if ( $.fn.DataTable.isDataTable( '#example' ) ) {
+                $('#example').DataTable().clear();
+                $('#example').DataTable().destroy();
+                initDatatable(printers.body);
+            } else {
+                $(document).ready(function() {
+                    initDatatable(printers.body);
                 } );
-            } );
+            }
         });
+    }
+
+    function initDatatable(data) {
+        $('#example').DataTable( {
+            data: data,
+            select: {
+                style:    'os',
+                selector: 'td:first-child'
+            },
+            columns: [
+                {
+                    title: '',
+                    render: function() {
+                        return '<input type="checkbox" name="queue" />';
+                    }
+                },
+                { 
+                    data: "Name",
+                    title: "Name"
+                },
+                { 
+                    data: "PortName",
+                    title: "Port"
+                },
+                { 
+                    data: "DriverName",
+                    title: "Driver"
+                },
+                { 
+                    data: "Location",
+                    title: "Location"
+                },
+                { 
+                    data: "Comment",
+                    title: "Comment"
+                },
+                { 
+                    data: "Shared",
+                    title: "Shared"
+                },
+                { 
+                    data: "ShareName",
+                    title: "ShareName"
+                },
+                { 
+                    data: "Servers",
+                    title: "Servers",
+                    render: function() {
+                        return 'test'
+                    }
+                },
+            ]
+        } );
     }
 </script>

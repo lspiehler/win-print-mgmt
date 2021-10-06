@@ -40,6 +40,20 @@ function httpRequest(params, callback) {
     }
 }
 
+var getSelectedOptions = function(elem, prop) {
+    if(!prop) {
+        prop = 'value';
+    }
+    let options = [];
+    for(let i = 0; i <= elem.options.length - 1; i++) {
+        if(elem.options[i].selected===true) {
+            options.push(elem.options[i][prop]);
+        }
+    }
+
+    return options;
+}
+
 var getCommonDrivers = function(params, callback) {
     let options = {
         path: '/api/printer/driver/listcommon',
@@ -68,9 +82,7 @@ var listPrinters = function(params, callback) {
     }
 
     let body = {
-        servers: [
-            "DESKTOP-UF8E9D4"
-        ]
+        servers: params.servers
     }
 
     httpRequest({options: options, body: body}, function(err, resp) {
@@ -427,4 +439,27 @@ var portJob = function() {
             callback(false, responses);
         }
     }*/
+}
+
+var getInputElements = function() {
+    var properties = {};
+
+    let elems = ['input', 'select', 'button']
+    for(let h = 0; h <= elems.length - 1; h++) {
+        let input = document.getElementsByTagName(elems[h]);
+        for(let i = 0; i <= input.length - 1; i++) {
+            if(input[i].id) {
+                if(properties.hasOwnProperty(input[i].id)) {
+                    alert('Form contains elements with duplicate IDs');
+                } else {
+                    properties[input[i].id] = input[i];
+                }
+            } else {
+                //console.log('Found element with no id');
+                //console.log(input[i]);
+            }
+        }
+    }
+
+    return properties;
 }
