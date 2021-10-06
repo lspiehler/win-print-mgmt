@@ -58,6 +58,31 @@ var getCommonDrivers = function(params, callback) {
     });
 }
 
+var listPrinters = function(params, callback) {
+    let options = {
+        path: '/api/printer/queue/list',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }
+
+    let body = {
+        servers: [
+            "DESKTOP-UF8E9D4"
+        ]
+    }
+
+    httpRequest({options: options, body: body}, function(err, resp) {
+        if(err) {
+            callback(err, false);
+            return false;
+        } else {
+            callback(false, resp);
+        }
+    });
+}
+
 var printerJob = function() {
     var queue = [];
     var jobqueue = [];

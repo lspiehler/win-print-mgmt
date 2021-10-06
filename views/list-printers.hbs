@@ -1,0 +1,60 @@
+<!--<h1>{{data}}</h1>-->
+<table id="example" class="display" width="100%"></table>
+<script>
+    window.onload = function() {
+        listPrinters({}, function(err, printers) {
+            $(document).ready(function() {
+                $('#example').DataTable( {
+                    data: printers.body,
+                    select: {
+                        style:    'os',
+                        selector: 'td:first-child'
+                    },
+                    columns: [
+                        {
+                            title: '',
+                            render: function() {
+                                return '<input type="checkbox" name="queue" />';
+                            }
+                        },
+                        { 
+                            data: "Name",
+                            title: "Name"
+                        },
+                        { 
+                            data: "PortName",
+                            title: "Port"
+                        },
+                        { 
+                            data: "DriverName",
+                            title: "Driver"
+                        },
+                        { 
+                            data: "Location",
+                            title: "Location"
+                        },
+                        { 
+                            data: "Comment",
+                            title: "Comment"
+                        },
+                        { 
+                            data: "Shared",
+                            title: "Shared"
+                        },
+                        { 
+                            data: "ShareName",
+                            title: "ShareName"
+                        },
+                        { 
+                            data: "Servers",
+                            title: "Servers",
+                            render: function() {
+                                return 'test'
+                            }
+                        },
+                    ]
+                } );
+            } );
+        });
+    }
+</script>

@@ -6,3 +6,8 @@ body {
 a {
   color: #00B7FF;
 }
+
+table.display td {
+  padding: 3px 10px;
+  white-space:nowrap;
+}
