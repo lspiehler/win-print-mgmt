@@ -74,8 +74,9 @@
                 { 
                     data: "Servers",
                     title: "Servers",
-                    render: function() {
-                        return data.length
+                    render: function(data, type, row) {
+                        //console.log(row['Servers']);
+                        return row['Servers'].length;
                     }
                 },
             ]
