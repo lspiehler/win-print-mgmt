@@ -81,14 +81,10 @@ var listPrinters = function(params, callback) {
         }
     }
 
-<<<<<<< HEAD
     let body = {
         servers: params.servers,
         combine: true
     }
-=======
-    let body = params;
->>>>>>> dda74cd177d4ce5ec702688b54da38e56a433a99
 
     httpRequest({options: options, body: body}, function(err, resp) {
         if(err) {
