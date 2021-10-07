@@ -81,9 +81,7 @@ var listPrinters = function(params, callback) {
         }
     }
 
-    let body = {
-        servers: params.servers
-    }
+    let body = params;
 
     httpRequest({options: options, body: body}, function(err, resp) {
         if(err) {

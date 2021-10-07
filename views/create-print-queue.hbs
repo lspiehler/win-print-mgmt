@@ -12,8 +12,16 @@
     {{/each}}
         </select></td></tr>
 
-        <tr><td>Driver:</td><td><select class="form-control" id="driver">
-        </select><button class="btn btn-info" type="button" onclick="getDrivers();">Get Drivers</button></td></tr>
+        <tr><td>Driver:</td><td>
+            <div class="form-row">
+                <div class="form-group">
+                    <select name="driver" id="driver"></select>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-info" type="button" onclick="getDrivers();">Get Drivers</button>
+                </div>
+            </div>    
+            </td></tr>
 
     <tr><td>Queue Name:</td><td><input class="form-control" type="text" id="queue" value="TestPrinter" /></td></tr>
     <tr><td>Port FQDN/IP:</td><td><input class="form-control" type="text" id="port" value="192.168.1.120" /></td></tr>

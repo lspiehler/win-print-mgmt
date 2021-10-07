@@ -127,8 +127,10 @@ router.get('/printer/:object/:action/:server', function(req, res, next) {
 });
 
 router.post('/printer/:object/:action', function(req, res, next) {
+    //console.log(printerapi.hasOwnProperty(req.params.object));
+    //console.log(printerapi[req.params.object].hasOwnProperty(req.params.action));
+    //console.log(req.body);
     if(printerapi.hasOwnProperty(req.params.object) && printerapi[req.params.object].hasOwnProperty(req.params.action)) {
-        //console.log(req.body);
         printerapi[req.params.object][req.params.action](req.body, function(err, resp) {
             if(resp.headers) {
                 for(let i = 0; i <= resp.headers.length - 1; i++) {
