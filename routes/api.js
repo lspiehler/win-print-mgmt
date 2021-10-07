@@ -11,6 +11,7 @@ router.use(function(req, res, next) {
 
 /* GET users listing. */
 router.get('/server/:object/:action', function(req, res, next) {
+    res.set('Cache-Control', 'public, max-age=0, no-cache');
     if(serverapi.hasOwnProperty(req.params.object) && serverapi[req.params.object].hasOwnProperty(req.params.action)) {
         serverapi[req.params.object][req.params.action]({}, function(err, resp) {
             if(resp.headers) {
@@ -40,6 +41,7 @@ router.get('/server/:object/:action', function(req, res, next) {
 });
 
 router.post('/server/:object/:action', function(req, res, next) {
+    res.set('Cache-Control', 'public, max-age=0, no-cache');
     if(serverapi.hasOwnProperty(req.params.object) && serverapi[req.params.object].hasOwnProperty(req.params.action)) {
         serverapi[req.params.object][req.params.action](req.body, function(err, resp) {
             if(resp.headers) {
@@ -69,6 +71,7 @@ router.post('/server/:object/:action', function(req, res, next) {
 });
 
 router.get('/printer/:object/:action', function(req, res, next) {
+    res.set('Cache-Control', 'public, max-age=0, no-cache');
     if(printerapi.hasOwnProperty(req.params.object) && printerapi[req.params.object].hasOwnProperty(req.params.action)) {
         printerapi[req.params.object][req.params.action]({}, function(err, resp) {
             if(resp.headers) {
@@ -98,6 +101,7 @@ router.get('/printer/:object/:action', function(req, res, next) {
 });
 
 router.get('/printer/:object/:action/:server', function(req, res, next) {
+    res.set('Cache-Control', 'public, max-age=0, no-cache');
     if(printerapi.hasOwnProperty(req.params.object) && printerapi[req.params.object].hasOwnProperty(req.params.action)) {
         printerapi[req.params.object][req.params.action]({ server: req.params.server }, function(err, resp) {
             if(resp.headers) {
@@ -130,6 +134,7 @@ router.post('/printer/:object/:action', function(req, res, next) {
     //console.log(printerapi.hasOwnProperty(req.params.object));
     //console.log(printerapi[req.params.object].hasOwnProperty(req.params.action));
     //console.log(req.body);
+    res.set('Cache-Control', 'public, max-age=0, no-cache');
     if(printerapi.hasOwnProperty(req.params.object) && printerapi[req.params.object].hasOwnProperty(req.params.action)) {
         printerapi[req.params.object][req.params.action](req.body, function(err, resp) {
             if(resp.headers) {
