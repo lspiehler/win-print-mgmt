@@ -28,8 +28,8 @@ app.use('/js/jquery', express.static('./node_modules/jquery/dist'));
 app.use('/js/jquery-easing', express.static('./node_modules/jquery-easing/dist'));
 app.use('/js/datatables', express.static('./node_modules/datatables.net/js'));
 app.use('/js/datatables-bs5', express.static('./node_modules/datatables.net-bs5/js'));
-app.use('/js/datatables-select-bs5', express.static('./node_modules/datatables.net-select-bs5/js'));
-app.use('/css/datatables-select-bs5', express.static('./node_modules/datatables.net-select-bs5/css'));
+//app.use('/js/datatables-select-bs5', express.static('./node_modules/datatables.net-select-bs5/js'));
+//app.use('/css/datatables-select-bs5', express.static('./node_modules/datatables.net-select-bs5/css'));
 app.use('/css/datatables-bs5', express.static('./node_modules/datatables.net-bs5/css'));
 app.use('/css/bootstrap', express.static('./node_modules/bootstrap/dist/css'));
 

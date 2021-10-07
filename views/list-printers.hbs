@@ -6,24 +6,109 @@
             <option value="{{this.name}}">{{this.name}}</option>
     {{/each}}
         </select></td></tr>
+        <tr><td>Force Cache Update <input type="checkbox" id="updatecache" /></td></tr>
     </table>
+    <select id="searchprop">
+        <option value="Name">Queue Name</option>
+        <option value="Port Name">Port Name</option>
+    </select>
+    <input type="text" id="searchvalue" />
     <input type="submit" class="btn btn-primary" value="Submit" />
 </form>
-<table id="example" class="display" style="width: 100%"></table>
+<form onsubmit="getChecked(); return false;">
+    <input type="submit" value="Delete" />
+    <table id="example" class="display" style="width: 100%"></table>
+</form>
 <script>
+    var printerarr;
+    var getChecked = function() {
+        /*let queues = document.getElementsByName('queue');
+        let selqueues = [];
+        for(let i = 0; i <= queues.length - 1; i++) {
+            if(queues[i].checked) {
+                selqueues.push(printerarr[parseInt(queues[i].value)])
+            }
+        }
+
+        console.log(selqueues);*/
+        let table = $('#example').DataTable();
+        let requests = [];
+        let checkedvalues = table.$('input:checked').each(function () {
+            let request = {
+                servers: printerarr[parseInt($(this).attr('value'))].Servers,
+                objects: [
+                    {
+                        name: printerarr[parseInt($(this).attr('value'))].Name
+                    }
+                ]
+            }
+            requests.push(request);
+        });
+        //console.log(requests);
+        runJobs(requests, 0, function(err, resp) {
+            console.log('done');
+        });
+    }
+
+    var runJobs = function(requests, index, callback) {
+        if(!index) {
+            index = 0;
+        }
+        //console.log(index);
+        //console.log(requests.length);
+        if(index <= requests.length - 1) {
+            //console.log('run');
+            let jobmanager = new jobManager({maxqueue: 4});
+            jobmanager.processJobs(requests[index], '/api/printer/queue/delete',
+            //portjob.processJobs(portjobs,
+            function(e) {
+                console.log(e);
+            },
+            function(err, resp) {
+                runJobs(requests, index + 1, callback);
+            });
+        } else {
+            callback(false, false);
+        }
+    }
+
     var submitForm = function() {
         let properties = getInputElements();
+        let search = false;
+        //console.log(getSelectedOptions(properties.searchprop)[0]);
+        if(properties.searchvalue.value.trim() != '') {
+            search = {
+                comparison: 'AND',
+                properties: {}
+            }
+            search.properties[getSelectedOptions(properties.searchprop)[0]] = properties.searchvalue.value.trim();
+        }
 
-        console.log(getSelectedOptions(properties.servers));
+        let updatecache = false;
 
-        listPrinters({ servers: getSelectedOptions(properties.servers) }, function(err, printers) {
+
+
+        let request = {
+            servers: getSelectedOptions(properties.servers),
+            combine: true,
+            search: search,
+            updatecache: properties.updatecache.checked
+        }
+
+        console.log(request);
+
+        listPrinters(request, function(err, printers) {
+            printerarr = printers.body;
+            for(let i = 0; i <= printerarr.length - 1; i++) {
+                printerarr[i].index = i;
+            }
             if ( $.fn.DataTable.isDataTable( '#example' ) ) {
-                $('#example').DataTable().clear();
+                //$('#example').DataTable().clear();
                 $('#example').DataTable().destroy();
-                initDatatable(printers.body);
+                initDatatable(printerarr);
             } else {
                 $(document).ready(function() {
-                    initDatatable(printers.body);
+                    initDatatable(printerarr);
                 } );
             }
         });
@@ -36,11 +121,14 @@
                 style:    'os',
                 selector: 'td:first-child'
             },
+            order: [[1, 'asc']],
             columns: [
                 {
-                    title: '',
-                    render: function() {
-                        return '<input type="checkbox" name="queue" />';
+                    data: 'select',
+                    orderable: false,
+                    searchable: false,
+                    render: function(data, type, row, meta) {
+                        return '<input type="checkbox" value="' + meta.row + '" name="queue" />';
                     }
                 },
                 { 
@@ -74,8 +162,8 @@
                 { 
                     data: "Servers",
                     title: "Servers",
-                    render: function(data, type, row) {
-                        //console.log(row['Servers']);
+                    render: function(data, type, row, meta) {
+                        //console.log(row);
                         return row['Servers'].length;
                     }
                 },
