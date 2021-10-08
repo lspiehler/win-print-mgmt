@@ -140,7 +140,7 @@
                         );
                 }
 
-                console.log(request);
+                //console.log(request);
 
                 let jobmanager = new jobManager({maxqueue: 4});
                 //let printerjobs = printerjob.createJobQueue(request);
@@ -153,6 +153,7 @@
                     if(err) {
                         console.log(err);
                     } else {
+                        console.log('printers done');
                         console.log(resp);
                     }
                 });

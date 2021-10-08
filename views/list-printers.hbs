@@ -10,7 +10,7 @@
     </table>
     <select id="searchprop">
         <option value="Name">Queue Name</option>
-        <option value="Port Name">Port Name</option>
+        <option value="PortName">Port Name</option>
     </select>
     <input type="text" id="searchvalue" />
     <input type="submit" class="btn btn-primary" value="Submit" />
@@ -21,6 +21,7 @@
 </form>
 <script>
     var printerarr;
+    var table;
     var getChecked = function() {
         /*let queues = document.getElementsByName('queue');
         let selqueues = [];
@@ -31,20 +32,27 @@
         }
 
         console.log(selqueues);*/
-        let table = $('#example').DataTable();
         let requests = [];
         let checkedvalues = table.$('input:checked').each(function () {
+            //console.log(table.cell($(this).attr('value'), 'Servers:name').data());
             let request = {
-                servers: printerarr[parseInt($(this).attr('value'))].Servers,
+                servers: table.cell(table.row('#' + $(this).attr('value')).index(), 'Servers:name').data(),
                 objects: [
                     {
-                        name: printerarr[parseInt($(this).attr('value'))].Name
+                        name: table.cell(table.row('#' + $(this).attr('value')).index(), 'Name:name').data(),
+                        rowId: $(this).attr('value')
                     }
                 ]
             }
             requests.push(request);
         });
-        //console.log(requests);
+        let c = confirm('Are you sure you want to delete the following queues?\r\n' + JSON.stringify(requests, null, 2));
+        if(c===true) {
+            //console.log(requests);
+        } else {
+            console.log('request is cancelled');
+        }
+
         runJobs(requests, 0, function(err, resp) {
             console.log('done');
         });
@@ -62,7 +70,25 @@
             jobmanager.processJobs(requests[index], '/api/printer/queue/delete',
             //portjob.processJobs(portjobs,
             function(e) {
-                console.log(e);
+                if(e.response.body.result == 'success') {
+                    //console.log(table.row('#' + e.request.body.rowId).index());
+                    if(table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data().length <= 1) {
+                        //console.log('requesting row delete');
+                        table.row(table.row('#' + e.request.body.rowId).index()).remove().draw(false);
+                    } else {
+                        //console.log(table.cell(e.request.body.row, 'Servers:name').data());
+                        let index = table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data().indexOf(e.request.body.server)
+                        let removed = table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data().splice(index, 1);
+                        //console.log(table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data())
+                        //console.log(removed)
+                        //table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').render();
+                        table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').invalidate().draw();
+                    }
+                    console.log(e);
+                } else {
+                    console.log('deletion failed');
+                    console.log(e);
+                }
             },
             function(err, resp) {
                 runJobs(requests, index + 1, callback);
@@ -95,73 +121,85 @@
             updatecache: properties.updatecache.checked
         }
 
-        console.log(request);
+        //console.log(request);
 
         listPrinters(request, function(err, printers) {
-            printerarr = printers.body;
+            /*printerarr = printers.body;
             for(let i = 0; i <= printerarr.length - 1; i++) {
                 printerarr[i].index = i;
-            }
+            }*/
             if ( $.fn.DataTable.isDataTable( '#example' ) ) {
                 //$('#example').DataTable().clear();
-                $('#example').DataTable().destroy();
-                initDatatable(printerarr);
+                table.destroy();
+                initDatatable(printers.body);
             } else {
                 $(document).ready(function() {
-                    initDatatable(printerarr);
+                    initDatatable(printers.body);
                 } );
             }
         });
     }
 
     function initDatatable(data) {
-        $('#example').DataTable( {
+        table = $('#example').DataTable( {
             data: data,
             select: {
                 style:    'os',
                 selector: 'td:first-child'
             },
             order: [[1, 'asc']],
+            rowId: function(queue) {
+                //console.log(queue);
+                return queue.uid;
+            },
             columns: [
                 {
                     data: 'select',
                     orderable: false,
                     searchable: false,
                     render: function(data, type, row, meta) {
-                        return '<input type="checkbox" value="' + meta.row + '" name="queue" />';
+                        return '<input type="checkbox" value="' + row['uid'] + '" name="queue" />';
                     }
                 },
                 { 
                     data: "Name",
-                    title: "Name"
+                    title: "Name",
+                    name: "Name"
                 },
                 { 
                     data: "PortName",
-                    title: "Port"
+                    title: "Port",
+                    name: "Port"
                 },
                 { 
                     data: "DriverName",
-                    title: "Driver"
+                    title: "Driver",
+                    name: "Driver"
                 },
                 { 
                     data: "Location",
-                    title: "Location"
+                    title: "Location",
+                    name: "Location"
                 },
                 { 
                     data: "Comment",
-                    title: "Comment"
+                    title: "Comment",
+                    name: "Comment"
                 },
                 { 
                     data: "Shared",
-                    title: "Shared"
+                    title: "Shared",
+                    name: "Shared"
                 },
                 { 
                     data: "ShareName",
-                    title: "ShareName"
+                    title: "ShareName",
+                    name: "ShareName"
                 },
                 { 
                     data: "Servers",
                     title: "Servers",
+                    name: "Servers",
                     render: function(data, type, row, meta) {
                         //console.log(row);
                         return row['Servers'].length;

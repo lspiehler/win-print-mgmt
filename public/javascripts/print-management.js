@@ -95,121 +95,6 @@ var listPrinters = function(params, callback) {
     });
 }
 
-var printerJob = function() {
-    var queue = [];
-    var jobqueue = [];
-    var responses = [];
-    var jobid = 0;
-    var maxqueue = 0;
-    var jobcallback;
-
-    var updateQueue = function(id) {
-        for(let i = 0; i <= queue.length - 1; i++) {
-            if(id == queue[i].id) {
-                //console.log('found match ' + i + ' in ' + queue.length + ' item array');
-                queue.splice(i, 1);
-                break;
-            }
-        }
-        processJobs();
-    }
-
-    this.processJobs = function(jobs, e, callback) {
-        jobcallback = callback;
-        jobqueue = jobs;
-        eventcallback = e;
-        //console.log(jobqueue);
-        processJobs();
-    }
-
-    var processJobs = function() {
-        //console.log(jobqueue.length);
-        //console.log(queue.length);
-        if(jobqueue.length > 0) {
-            if(queue.length < maxqueue) {
-                let job = jobqueue.shift();
-                queue.push(job);
-                let options = {
-                    path: '/api/printer/queue/create',
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }
-
-                let body = {
-                    id: job.id,
-                    server: job.server,
-                    name: job.name,
-                    driver: job.driver,
-                    shared: job.shared,
-                    port: job.port,
-                    location: job.location,
-                    comment: job.comment
-                }
-
-                httpRequest({options: options, body: body, id: job.id}, function(err, resp) {
-                    //if(err) {
-                    //    callback(err, false);
-                    //    return false;
-                    //} else {
-                        updateQueue(resp.id);
-                        eventcallback(resp);
-                        responses.push(resp);
-                    //}
-                });
-                processJobs();
-            }
-        } else {
-            if(queue.length <= 0) {
-                jobcallback(false, responses);
-            }
-        }
-    }
-
-    this.createJobQueue = function(params) {
-        //console.log(params);
-        let trayindex = 0;
-        let serverindex = 0;
-        let queue = [];
-
-        maxqueue = params.servers.length;
-
-        for(let i = 0; i <= params.queues.length - 1; i++) {
-            //console.log(params.queues[i].name);
-            while(trayindex <= params.queues[i].trays.length - 1) {
-                while(serverindex <= params.servers.length - 1) {
-                    //console.log(params.queues[i].name + '-' + params.queues[i].trays[trayindex] + ' - ' + params.servers[serverindex]);
-                    //console.log(params.servers[serverindex]);
-                    let name = params.queues[i].name;
-                    if(params.queues[i].trays[trayindex] != 0) {
-                        name = name + '-T' + params.queues[i].trays[trayindex]
-                    }
-                    let job = {
-                        id: jobid,
-                        server: params.servers[serverindex],
-                        name: name,
-                        driver: params.queues[i].driver,
-                        shared: params.queues[i].shared,
-                        port: params.queues[i].port,
-                        location: params.queues[i].location,
-                        comment: params.queues[i].comment
-                    }
-                    queue.push(job);
-                    jobid++;
-                    serverindex++;
-                }
-                serverindex = 0;
-                //console.log(params.queues[queueindex]);
-                trayindex++;
-            }
-            trayindex = 0;
-        }
-
-        return queue;
-    }
-}
-
 var jobManager = function(params) {
     var reqqueue = {};
     var jobqueue = {};
@@ -244,7 +129,7 @@ var jobManager = function(params) {
                 reqqueue[req.servers[i]].push(job);
             }
         }
-        console.log(reqqueue);
+        //console.log(reqqueue);
         let reqkeys = Object.keys(reqqueue)
         for(let i = 0; i <= reqkeys.length - 1; i++) {
             //console.log(reqqueue[reqkeys[i]]);
@@ -267,7 +152,7 @@ var jobManager = function(params) {
         if(reqqueue[queue].length > 0) {
             if(jobqueue[queue] < maxqueue) {
                 let job = reqqueue[queue].shift();
-                console.log(job);
+                //console.log(job);
                 jobqueue[queue] = jobqueue[queue] + 1;
                 let options = {
                     path: apipath,
@@ -286,7 +171,13 @@ var jobManager = function(params) {
                     //} else {
                         jobqueue[queue] = jobqueue[queue] - 1;
                         //updateQueue(resp.id);
-                        //eventcallback(resp);
+                        eventcallback({
+                            response: resp,
+                            request: {
+                                options: options,
+                                body: body
+                            }
+                        });
                         respqueue[queue].push(resp);
                         processJobs(queue);
                     //}
@@ -299,146 +190,6 @@ var jobManager = function(params) {
             }
         }
     }
-}
-
-var portJob = function() {
-    var queue = [];
-    var jobqueue = [];
-    var responses = [];
-    var jobid = 0;
-    var maxqueue = 0;
-    var jobcallback;
-    var eventcallback;
-
-    /*this.create = function(params, callback) {
-        jobcallback = callback;
-        if(maxqueue == 0) {
-            maxqueue = params.servers.length
-        }
-        fillJobQueue(params);
-        processJobs();
-    }*/
-
-    var updateQueue = function(id) {
-        for(let i = 0; i <= queue.length - 1; i++) {
-            if(id == queue[i].id) {
-                //console.log('found match ' + i + ' in ' + queue.length + ' item array');
-                queue.splice(i, 1);
-                break;
-            }
-        }
-        processJobs();
-    }
-
-    this.processJobs = function(jobs, e, callback) {
-        jobcallback = callback;
-        jobqueue = jobs;
-        eventcallback = e;
-        //console.log(jobqueue);
-        processJobs();
-    }
-
-    var processJobs = function() {
-        //console.log(jobqueue.length);
-        //console.log(queue.length);
-        if(jobqueue.length > 0) {
-            if(queue.length < maxqueue) {
-                let job = jobqueue.shift();
-                queue.push(job);
-                let options = {
-                    path: '/api/printer/port/create',
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }
-
-                let body = {
-                    ip: job.ip,
-                    server: job.server
-                }
-
-                httpRequest({options: options, body: body, id: job.id}, function(err, resp) {
-                    //if(err) {
-                    //    callback(err, false);
-                    //    return false;
-                    //} else {
-                        updateQueue(resp.id);
-                        eventcallback(resp);
-                        responses.push(resp);
-                    //}
-                });
-                processJobs();
-            }
-        } else {
-            if(queue.length <= 0) {
-                jobcallback(false, responses);
-            }
-        }
-    }
-
-    this.createJobQueue = function(params) {
-        let portindex = 0;
-        let serverindex = 0;
-        let queue = [];
-
-        maxqueue = params.servers.length;
-
-        while(portindex <= params.ports.length - 1) {
-            while(serverindex <= params.servers.length - 1) {
-                let job = {
-                    id: jobid,
-                    ip: params.ports[portindex].ip,
-                    server: params.servers[serverindex]
-                }
-                queue.push(job);
-                jobid++;
-                serverindex++;
-            }
-            serverindex = 0;
-            portindex++;
-        }
-
-        return queue;
-    }
-
-    /*var createPorts = function(params, index, callback) {
-        if(index <= params.ports.length - 1) {
-            for(let i = 0; i <= params.servers.length - 1; i++) {
-                let options = {
-                    path: '/api/printer/port/create',
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                }
-
-                let body = {
-                    ip: params.ports[index],
-                    server: params.servers[i]
-                }
-
-                queue.push({
-                    id: uniqueid,
-                    server: params.servers[i],
-                    port: params.ports[index]
-                })
-                httpRequest({options: options, body: body, id: uniqueid}, function(err, resp) {
-                    if(err) {
-                        callback(err, false);
-                        return false;
-                    } else {
-                        updateQueue(resp.id);
-                        responses.push(resp);
-                    }
-                });
-                uniqueid++;
-            }
-            createPorts(params, index + 1, callback);
-        } else {
-            callback(false, responses);
-        }
-    }*/
 }
 
 var getInputElements = function() {
