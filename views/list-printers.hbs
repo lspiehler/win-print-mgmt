@@ -15,10 +15,10 @@
     <input type="text" id="searchvalue" />
     <input type="submit" class="btn btn-primary" value="Submit" />
 </form>
-<form onsubmit="getChecked(); return false;">
-    <input type="submit" value="Delete" />
+<!--<form onsubmit="getChecked(); return false;">-->
+    <input type="submit" onclick="getChecked();" value="Delete" />
     <table id="example" class="display" style="width: 100%"></table>
-</form>
+<!--</form>-->
 <script>
     var printerarr;
     var table;
@@ -44,6 +44,11 @@
                     }
                 ]
             }
+
+            /*if() {
+
+            }*/
+
             requests.push(request);
         });
         let c = confirm('Are you sure you want to delete the following queues?\r\n' + JSON.stringify(requests, null, 2));
