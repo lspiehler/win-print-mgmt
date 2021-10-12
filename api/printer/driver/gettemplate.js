@@ -17,6 +17,13 @@ var templates = {
         },
         {
             options: {
+                dmDefaultSource: 3,
+                dmDuplex: 1,
+                dmColor: 1
+            }
+        },
+        {
+            options: {
                 dmDefaultSource: 2,
                 dmDuplex: 1,
                 dmColor: 1
@@ -24,7 +31,7 @@ var templates = {
         },
         {
             options: {
-                dmDefaultSource: 3,
+                dmDefaultSource: 264,
                 dmDuplex: 1,
                 dmColor: 1
             }
@@ -33,14 +40,15 @@ var templates = {
 }
 
 module.exports = function(params, callback) {
-    if(templates.hasOwnProperty(params.name)) {
+    //console.log(params);
+    if(templates.hasOwnProperty(params.server)) {
         let result = {
             status: 200,
             headers: [],
             body: {
                 result: 'success',
                 message: null,
-                data: templates[params.name]
+                data: templates[params.server]
             }
         }
         callback(false, result);
