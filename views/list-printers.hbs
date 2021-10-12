@@ -20,6 +20,20 @@
     <input type="button" onclick="getConfigs();" value="Get Config" />
     <table id="example" class="display" style="width: 100%"></table>
 <!--</form>-->
+<div class="modal fade" id="configModal" tabindex="-1" aria-labelledby="configModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="configModalLabel">Queue Config</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div  class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
     var printerarr;
     var table;
@@ -50,6 +64,8 @@
 
     var getConfigs = function() {
         let requests = createRequests();
+        //console.log('function called');
+        //console.log(requests);
         if(requests.length != 1) {
             alert('1 queue should be selected with this option.');
         } else {
@@ -69,6 +85,8 @@
             let responses = [];
 
             httpRequest({options: options, body: body}, function(err, resp) {
+                //console.log('out');
+                console.log(resp.body.data);
                 for(let i = 0; i <= resp.body.data.length - 1; i++) {
                     let response = {
                         server: resp.body.data[i].request.host,
@@ -77,7 +95,12 @@
                     }
                     responses.push(response);
                 }
-                console.log(JSON.stringify(responses, null, 2));
+                //console.log(JSON.stringify(responses, null, 2));
+                let configmodal = $('#configModal');
+                console.log(configmodal);
+                configmodal.find('.modal-body').html('<pre>' + JSON.stringify(responses, null, 2) + '</pre>');
+                configmodal.modal('show');
+                //modal.show();
             });
         }
     }

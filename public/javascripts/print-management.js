@@ -1,4 +1,5 @@
 function httpRequest(params, callback) {
+    //console.log(params);
     var request = new XMLHttpRequest();
     request.open(params.options.method, params.options.path, true);
     if(params.options.headers) {

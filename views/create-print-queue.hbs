@@ -15,7 +15,7 @@
         <tr><td>Driver:</td><td>
             <div class="form-row">
                 <div class="form-group">
-                    <select name="driver" id="driver"></select>
+                    <select onchange="getDriverTemplate(this)" name="driver" id="driver"></select>
                 </div>
                 <div class="form-group">
                     <button class="btn btn-info" type="button" onclick="getDrivers();">Get Drivers</button>
@@ -24,7 +24,7 @@
             </td></tr>
 
     <tr><td>Queue Name:</td><td><input class="form-control" type="text" id="queue" value="TestPrinter" /></td></tr>
-    <tr><td>Port FQDN/IP:</td><td><input class="form-control" type="text" id="port" value="192.168.1.120" /></td></tr>
+    <tr><td>Port FQDN/IP:</td><td><input class="form-control" type="text" id="port" value="10.110.134.86" /></td></tr>
     <tr><td>Location:</td><td><input class="form-control" type="text" id="location" /></td></tr>
     <tr><td>Comment:</td><td><input class="form-control" type="text" id="comment" /></td></tr>
     <tr><td>Shared:</td><td><input type="checkbox" id="shared" /></td></tr>
@@ -45,11 +45,35 @@
     </table>
 
 <script>
+    var drivertemplate = false;
+
     function clearTrays() {
         let trays = document.getElementById('trays');
         for(let i = 0; i <= trays.options.length - 1; i++) {
             trays.options[i].selected = false;
         }
+    }
+
+    function getDriverTemplate(elem) {
+        //console.log(elem);
+        let options = {
+            path: '/api/printer/driver/gettemplate/' + getSelectedOptions(elem),
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+
+        let responses = [];
+
+        httpRequest({options: options}, function(err, resp) {
+            if(resp.body.result!='success') {
+                drivertemplate = false;
+            } else {
+                drivertemplate = resp.body.data;
+                //console.log(driver);
+            }
+        });
     }
 
     function getDrivers() {
@@ -122,26 +146,41 @@
                 let driver = getSelectedOptions(properties.driver)[0];
 
                 for(let i = 0; i <= trays.length - 1; i++) {
+                    //console.log('here');
                     let name;
                     if(trays[i]=='0') {
                         name = properties.queue.value;
                     } else {
                         name = properties.queue.value + 'T-' + trays[i]
                     }
-                        request.objects.push(
+                    let object = {
+                        name: name,
+                        port: properties.port.value,
+                        comment: properties.comment.value,
+                        location: properties.location.value,
+                        shared: properties.shared.checked,
+                        driver: driver
+                    }
+
+                    //console.log(object);
+
+                    if(drivertemplate && drivertemplate[parseInt(trays[i])]) {
+                        //console.log(object);
+                        object['config'] = [
                             {
-                                name: name,
-                                port: properties.port.value,
-                                comment: properties.comment.value,
-                                location: properties.location.value,
-                                shared: properties.shared.checked,
-                                driver: driver,
+                                type: 8,
+                                options: drivertemplate[parseInt(trays[i])].options
                             }
-                        );
+                        ]
+                        console.log(object);
+                    }
+
+                    request.objects.push(object)
                 }
 
-                //console.log(request);
-
+                /*console.log(driver);
+                console.log(request);
+                return;*/
                 let jobmanager = new jobManager({maxqueue: 4});
                 //let printerjobs = printerjob.createJobQueue(request);
                 //console.log(printerjobs);
