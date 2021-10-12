@@ -104,7 +104,7 @@ var jobManager = function(params) {
     var jobcallback;
     var eventcallback;
 
-    if(params.maxqueue >= 1) {
+    if(params && params.maxqueue >= 1) {
         maxqueue = params.maxqueue;
     }
 

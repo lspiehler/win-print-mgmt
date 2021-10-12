@@ -16,22 +16,15 @@
     <input type="submit" class="btn btn-primary" value="Submit" />
 </form>
 <!--<form onsubmit="getChecked(); return false;">-->
-    <input type="submit" onclick="getChecked();" value="Delete" />
+    <input type="button" onclick="deleteQueues();" value="Delete" />
+    <input type="button" onclick="getConfigs();" value="Get Config" />
     <table id="example" class="display" style="width: 100%"></table>
 <!--</form>-->
 <script>
     var printerarr;
     var table;
-    var getChecked = function() {
-        /*let queues = document.getElementsByName('queue');
-        let selqueues = [];
-        for(let i = 0; i <= queues.length - 1; i++) {
-            if(queues[i].checked) {
-                selqueues.push(printerarr[parseInt(queues[i].value)])
-            }
-        }
 
-        console.log(selqueues);*/
+    var createRequests = function() {
         let requests = [];
         let checkedvalues = table.$('input:checked').each(function () {
             //console.log(table.cell($(this).attr('value'), 'Servers:name').data());
@@ -51,16 +44,54 @@
 
             requests.push(request);
         });
+
+        return requests;
+    }
+
+    var getConfigs = function() {
+        let requests = createRequests();
+        if(requests.length != 1) {
+            alert('1 queue should be selected with this option.');
+        } else {
+            let options = {
+                path: '/api/printer/queue/getconfigs',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+
+            let body = {
+                servers: requests[0].servers,
+                name: requests[0].objects[0].name
+            }
+
+            let responses = [];
+
+            httpRequest({options: options, body: body}, function(err, resp) {
+                for(let i = 0; i <= resp.body.data.length - 1; i++) {
+                    let response = {
+                        server: resp.body.data[i].request.host,
+                        queue: requests[0].objects[0].name,
+                        config: resp.body.data[i].response.data
+                    }
+                    responses.push(response);
+                }
+                console.log(JSON.stringify(responses, null, 2));
+            });
+        }
+    }
+
+    var deleteQueues = function() {
+        let requests = createRequests();
         let c = confirm('Are you sure you want to delete the following queues?\r\n' + JSON.stringify(requests, null, 2));
         if(c===true) {
-            //console.log(requests);
+            runJobs(requests, 0, function(err, resp) {
+                console.log('done');
+            });
         } else {
             console.log('request is cancelled');
         }
-
-        runJobs(requests, 0, function(err, resp) {
-            console.log('done');
-        });
     }
 
     var runJobs = function(requests, index, callback) {
