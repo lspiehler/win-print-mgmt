@@ -17,7 +17,9 @@
 </form>
 <!--<form onsubmit="getChecked(); return false;">-->
     <input type="button" onclick="deleteQueues();" value="Delete" />
-    <input type="button" onclick="getConfigs();" value="Get Config" />
+    <input type="button" onclick="getPrintSettings();" value="Get Print Settings" />
+    <input type="button" onclick="setPrintSettings();" value="Set Print Settings" />
+    <input type="button" onclick="setQueueOptions();" value="Set Queue Options" />
     <table id="example" class="display" style="width: 100%"></table>
 <!--</form>-->
 <div class="modal fade" id="configModal" tabindex="-1" aria-labelledby="configModalLabel" aria-hidden="true">
@@ -34,35 +36,164 @@
     </div>
   </div>
 </div>
+
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="settingsModalLabel">Queue Config</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div  class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="updateSettings()" >Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
     var printerarr;
     var table;
+    var settingstype;
 
-    var createRequests = function() {
-        let requests = [];
-        let checkedvalues = table.$('input:checked').each(function () {
-            //console.log(table.cell($(this).attr('value'), 'Servers:name').data());
-            let request = {
-                servers: table.cell(table.row('#' + $(this).attr('value')).index(), 'Servers:name').data(),
-                objects: [
-                    {
-                        name: table.cell(table.row('#' + $(this).attr('value')).index(), 'Name:name').data(),
-                        rowId: $(this).attr('value')
-                    }
-                ]
-            }
-
-            /*if() {
-
-            }*/
-
-            requests.push(request);
-        });
-
-        return requests;
+    var createOptionsTable = function(options) {
+        let table = document.createElement('table');
+        table.id = 'optionstable';
+        let row = table.insertRow(0);
+        let cell1 = row.insertCell(0);
+        let link = document.createElement('a');
+        //console.log("['" + options.join("', '") + "']");
+        link.href = "javascript:addOptionsRow(['" + options.join("', '") + "'])";
+        link.text = "Add Row"
+        cell1.appendChild(link);
+        return table;
     }
 
-    var getConfigs = function() {
+    var updateSettings = function() {
+        let c = confirm('Are you sure you want to modify the selected queues?');
+        if(c===true) {
+            let table = document.getElementById('optionstable');
+            let options = {};
+            for(let i = 0; i <= table.rows.length - 1; i++) {
+                if(table.rows[i].className=="optionsrow") {
+                    let property = getSelectedOptions(table.rows[i].getElementsByClassName('optionproperty')[0])[0];
+                    let value = table.rows[i].getElementsByClassName('optionvalue')[0].value;
+                    if(options.hasOwnProperty(property)) {
+                        alert('The same property should not be selected twice!');
+                        return;
+                    } else {
+                        options[property] = value;
+                    }
+                }
+            }
+            let requests = createRequests(options);
+            if(settingstype=='queuesettings') {
+                runJobs(requests, '/api/printer/queue/set', 0, function(err, resp) {
+                    console.log('done');
+                });
+            } else if('printsettings') {
+                runJobs(requests, '/api/printer/queue/setconfig', 0, function(err, resp) {
+                    console.log('done');
+                });
+            } else {
+                console.log('Unrecognized settings type');
+                return;
+            }
+        } else {
+            console.log('User cancelled');
+        }
+    }
+
+    var deleteRow = function(e) {
+        let table = document.getElementById('optionstable');
+        table.deleteRow(e.target.parentNode.parentNode.rowIndex);
+    }
+
+    var addOptionsRow = function(options) {
+        let table = document.getElementById('optionstable');
+        let row = table.insertRow(table.rows.length);
+        row.className = 'optionsrow';
+        let cell1 = row.insertCell(0);
+        //cell1.className = 'propertycell';
+        let cell2 = row.insertCell(1);
+        //cell2.className = 'valuecell';
+        if(table.rows.length > 2) {
+            let cell3 = row.insertCell(2);
+            let button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn-close';
+            button.addEventListener('click', function(e) {
+                deleteRow(e);
+            });
+            cell3.appendChild(button);
+        }
+        let select = document.createElement('select');
+        select.className = 'optionproperty';
+        for(let i = 0 ; i <= options.length - 1; i++) {
+            let option = document.createElement('option');
+            option.value = options[i];
+            option.text = options[i];
+            select.add(option);
+        }
+        cell1.appendChild(select);
+        let input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'optionvalue';
+        cell2.appendChild(input);
+    }
+
+    var setPrintSettings = function() {
+        settingstype = 'printsettings';
+        let settingsmodal = $('#settingsModal');
+        //console.log(configmodal);
+        settingsmodal.find('.modal-title').text('Change Print Settings');
+        let options = ['dmDefaultSource', 'dmColor', 'dmDuplex'];
+        settingsmodal.find('.modal-body').html(createOptionsTable(options));
+        addOptionsRow(options);
+        settingsmodal.modal('show');
+    }
+
+    var setQueueOptions = function() {
+        settingstype = 'queuesettings';
+        let settingsmodal = $('#settingsModal');
+        //console.log(configmodal);
+        settingsmodal.find('.modal-title').text('Change Queue Options');
+        let options = ['PortName', 'Location', 'DriverName'];
+        settingsmodal.find('.modal-body').html(createOptionsTable(options));
+        addOptionsRow(options);
+        settingsmodal.modal('show');
+    }
+
+    var createRequests = function(options) {
+        let requests = [];
+        try {
+            let checkedvalues = table.$('input:checked').each(function () {
+                //console.log(table.cell($(this).attr('value'), 'Servers:name').data());
+                let request = {
+                    servers: table.cell(table.row('#' + $(this).attr('value')).index(), 'Servers:name').data(),
+                    objects: [
+                        {
+                            name: table.cell(table.row('#' + $(this).attr('value')).index(), 'Name:name').data(),
+                            rowId: $(this).attr('value')
+                        }
+                    ]
+                }
+
+                if(options) {
+                    request.objects[0]['options'] = options;
+                }
+
+                requests.push(request);
+            });
+
+            return requests;
+        } catch(e) {
+            alert('You must first search for print queues');
+        }
+    }
+
+    var getPrintSettings = function() {
         let requests = createRequests();
         //console.log('function called');
         //console.log(requests);
@@ -97,7 +228,8 @@
                 }
                 //console.log(JSON.stringify(responses, null, 2));
                 let configmodal = $('#configModal');
-                console.log(configmodal);
+                //console.log(configmodal);
+                configmodal.find('.modal-title').html('Print Settings');
                 configmodal.find('.modal-body').html('<pre>' + JSON.stringify(responses, null, 2) + '</pre>');
                 configmodal.modal('show');
                 //modal.show();
@@ -109,7 +241,7 @@
         let requests = createRequests();
         let c = confirm('Are you sure you want to delete the following queues?\r\n' + JSON.stringify(requests, null, 2));
         if(c===true) {
-            runJobs(requests, 0, function(err, resp) {
+            runJobs(requests, '/api/printer/queue/delete', 0, function(err, resp) {
                 console.log('done');
             });
         } else {
@@ -117,7 +249,7 @@
         }
     }
 
-    var runJobs = function(requests, index, callback) {
+    var runJobs = function(requests, apipath, index, callback) {
         if(!index) {
             index = 0;
         }
@@ -126,7 +258,7 @@
         if(index <= requests.length - 1) {
             //console.log('run');
             let jobmanager = new jobManager({maxqueue: 4});
-            jobmanager.processJobs(requests[index], '/api/printer/queue/delete',
+            jobmanager.processJobs(requests[index], apipath,
             //portjob.processJobs(portjobs,
             function(e) {
                 if(e.response.body.result == 'success') {
@@ -150,7 +282,7 @@
                 }
             },
             function(err, resp) {
-                runJobs(requests, index + 1, callback);
+                runJobs(requests, apipath, index + 1, callback);
             });
         } else {
             callback(false, false);
