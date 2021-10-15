@@ -23,12 +23,12 @@ router.get('/create-print-queue', function(req, res, next) {
   });
 });
 
-router.get('/list-printers', function(req, res, next) {
+router.get('/manage-queues', function(req, res, next) {
   server.inventory.list({}, function(err, inventory) {
     if(err) {
       res.render('error', { message: err });
     } else {
-      res.render('list-printers', { inventory: inventory });
+      res.render('manage-queues', { inventory: inventory });
     }
   });
 });

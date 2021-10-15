@@ -13,3 +13,8 @@ table.display td {
   white-space: nowrap;
   overflow: hidden;
 }
+
+p.log {
+  margin: 0;
+  padding: 0;
+}

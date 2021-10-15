@@ -7,24 +7,50 @@
     <script src="/js/jquery/jquery.min.js"></script>
 	  <script src="/js/jquery-easing/jquery.easing.1.3.umd.min.js"></script>
     <script src="/js/bootstrap/bootstrap.bundle.min.js"></script>
-    <!--<script src="/js/datatables-select-bs5/select.bootstrap5.min.js"></script>-->
     <script src="/js/datatables/jquery.dataTables.min.js"></script>
-    <script src="/js/datatables-bs5/dataTables.bootstrap5.min.js"></script>
     <link href="/css/bootstrap/bootstrap.min.css" rel="stylesheet">
-    <!--<link href="/css/datatables-select-bs5/select.bootstrap5.min.css" rel="stylesheet">-->
+    <script src="/js/datatables-buttons/dataTables.buttons.min.js"></script>
+    <script src="/js/datatables-select/dataTables.select.min.js"></script>
+    <script src="/js/jquery-datatables-checkboxes/dataTables.checkboxes.min.js"></script>
+    <script src="/js/datatables-buttons-bs5/buttons.bootstrap5.min.js"></script>
+    <link href="/css/datatables-buttons-bs5/buttons.bootstrap5.min.css" rel="stylesheet">
+    <script src="/js/datatables-bs5/dataTables.bootstrap5.min.js"></script>
+    <link href="/css/datatables-select-bs5/select.bootstrap5.min.css" rel="stylesheet">
     <link href="/css/datatables-bs5/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <script src="/js/datatables-select-bs5/select.bootstrap5.min.js"></script>
+    <!--<link href="/css/datatables/jquery.dataTables.css" rel="stylesheet">-->
+    <link href="/css/jquery-datatables-checkboxes/dataTables.checkboxes.css" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" media="screen" />
   </head>
   <body>
-    <table>
-      <tr>
-        <td>
-          <a href="/create-print-queue">Create Print Queue</a>
-        </td>
-        <td>
-          <a href="/list-printers">List Printers</a>
-        </td>
-      </tr>
-    </table>
+    <header>
+      <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">qManager</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <!--<li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">Home</a>
+              </li>-->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Queue
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                  <li><a class="dropdown-item" href="/create-print-queue">Create</a></li>
+                  <li><a class="dropdown-item" href="/manage-queues">Manage</a></li>
+                  <!--<li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item" href="#">Something else here</a></li>-->
+                </ul>
+              </li>
+          </div>
+        </div>
+      </nav>
+    </header>
+    <p>&nbsp;</p>
     {{{body}}}
   </body>
 </html>

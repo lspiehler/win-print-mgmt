@@ -16,10 +16,11 @@
     <input type="submit" class="btn btn-primary" value="Submit" />
 </form>
 <!--<form onsubmit="getChecked(); return false;">-->
-    <input type="button" onclick="deleteQueues();" value="Delete" />
+    <!--<input type="button" onclick="deleteQueues();" value="Delete" />
     <input type="button" onclick="getPrintSettings();" value="Get Print Settings" />
     <input type="button" onclick="setPrintSettings();" value="Set Print Settings" />
-    <input type="button" onclick="setQueueOptions();" value="Set Queue Options" />
+    <input type="button" onclick="setQueueOptions();" value="Set Queue Options" />-->
+    <hr>
     <table id="example" class="display" style="width: 100%"></table>
 <!--</form>-->
 <div class="modal fade" id="configModal" tabindex="-1" aria-labelledby="configModalLabel" aria-hidden="true">
@@ -168,14 +169,16 @@
     var createRequests = function(options) {
         let requests = [];
         try {
-            let checkedvalues = table.$('input:checked').each(function () {
+            var rows_selected = table.column(0).checkboxes.selected();
+            $.each(rows_selected, function(index, rowId){
                 //console.log(table.cell($(this).attr('value'), 'Servers:name').data());
+                console.log(index + ' - ' + rowId);
                 let request = {
-                    servers: table.cell(table.row('#' + $(this).attr('value')).index(), 'Servers:name').data(),
+                    servers: table.cell(table.row('#' + rowId).index(), 'Servers:name').data(),
                     objects: [
                         {
-                            name: table.cell(table.row('#' + $(this).attr('value')).index(), 'Name:name').data(),
-                            rowId: $(this).attr('value')
+                            name: table.cell(table.row('#' + rowId).index(), 'Name:name').data(),
+                            rowId: rowId
                         }
                     ]
                 }
@@ -241,25 +244,7 @@
         let requests = createRequests();
         let c = confirm('Are you sure you want to delete the following queues?\r\n' + JSON.stringify(requests, null, 2));
         if(c===true) {
-            runJobs(requests, '/api/printer/queue/delete', 0, function(err, resp) {
-                console.log('done');
-            });
-        } else {
-            console.log('request is cancelled');
-        }
-    }
-
-    var runJobs = function(requests, apipath, index, callback) {
-        if(!index) {
-            index = 0;
-        }
-        //console.log(index);
-        //console.log(requests.length);
-        if(index <= requests.length - 1) {
-            //console.log('run');
-            let jobmanager = new jobManager({maxqueue: 4});
-            jobmanager.processJobs(requests[index], apipath,
-            //portjob.processJobs(portjobs,
+            runJobs(requests, '/api/printer/queue/delete', 0,
             function(e) {
                 if(e.response.body.result == 'success') {
                     //console.log(table.row('#' + e.request.body.rowId).index());
@@ -280,9 +265,30 @@
                     console.log('deletion failed');
                     console.log(e);
                 }
+            }, function(err, resp) {
+                console.log('done');
+            });
+        } else {
+            console.log('request is cancelled');
+        }
+    }
+
+    var runJobs = function(requests, apipath, index, ecallback, callback) {
+        if(!index) {
+            index = 0;
+        }
+        //console.log(index);
+        //console.log(requests.length);
+        if(index <= requests.length - 1) {
+            //console.log('run');
+            let jobmanager = new jobManager({maxqueue: 4});
+            jobmanager.processJobs(requests[index], apipath,
+            //portjob.processJobs(portjobs,
+            function(e) {
+                ecallback(e);
             },
             function(err, resp) {
-                runJobs(requests, apipath, index + 1, callback);
+                runJobs(requests, apipath, index + 1, ecallback, callback);
             });
         } else {
             callback(false, false);
@@ -333,24 +339,64 @@
 
     function initDatatable(data) {
         table = $('#example').DataTable( {
+            pageLength: 25,
+            dom: 'Bfrtipl',
+            buttons: [
+                {
+                    text: 'Delete',
+                    action: function() {
+                        deleteQueues();
+                    }
+                },
+                {
+                    text: 'Get Print Settings',
+                    action: function() {
+                        getPrintSettings();
+                    }
+                },
+                {
+                    text: 'Set Print Settings',
+                    action: function() {
+                        setPrintSettings();
+                    }
+                },
+                {
+                    text: 'Set Queue Options',
+                    action: function() {
+                        setPrintOptions();
+                    }
+                }
+            ],
             data: data,
             select: {
-                style:    'os',
-                selector: 'td:first-child'
+                'style': 'multi'
             },
             order: [[1, 'asc']],
             rowId: function(queue) {
                 //console.log(queue);
                 return queue.uid;
             },
-            columns: [
+            'columnDefs': [
                 {
+                    'targets': 0,
+                    'checkboxes': {
+                        'selectRow': true
+                    }
+                }
+            ],
+            columns: [
+                /*{
                     data: 'select',
                     orderable: false,
                     searchable: false,
                     render: function(data, type, row, meta) {
                         return '<input type="checkbox" value="' + row['uid'] + '" name="queue" />';
                     }
+                },*/
+                { 
+                    data: "uid",
+                    title: "uid",
+                    name: "uid"
                 },
                 { 
                     data: "Name",

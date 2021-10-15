@@ -28,10 +28,18 @@ app.use('/js/jquery', express.static('./node_modules/jquery/dist'));
 app.use('/js/jquery-easing', express.static('./node_modules/jquery-easing/dist'));
 app.use('/js/datatables', express.static('./node_modules/datatables.net/js'));
 app.use('/js/datatables-bs5', express.static('./node_modules/datatables.net-bs5/js'));
-//app.use('/js/datatables-select-bs5', express.static('./node_modules/datatables.net-select-bs5/js'));
-//app.use('/css/datatables-select-bs5', express.static('./node_modules/datatables.net-select-bs5/css'));
+app.use('/js/datatables-buttons-bs5', express.static('./node_modules/datatables.net-buttons-bs5/js'));
+app.use('/js/datatables-buttons', express.static('./node_modules/datatables.net-buttons/js'));
+app.use('/js/datatables-select', express.static('./node_modules/datatables.net-select/js'));
+app.use('/js/datatables-select-bs5', express.static('./node_modules/datatables.net-select-bs5/js'));
+app.use('/js/jquery-datatables-checkboxes', express.static('./node_modules/jquery-datatables-checkboxes/js'));
+app.use('/css/jquery-datatables-checkboxes', express.static('./node_modules/jquery-datatables-checkboxes/css'));
+app.use('/css/datatables-select-bs5', express.static('./node_modules/datatables.net-select-bs5/css'));
+app.use('/css/datatables', express.static('./node_modules/datatables.net-dt/css'));
 app.use('/css/datatables-bs5', express.static('./node_modules/datatables.net-bs5/css'));
 app.use('/css/bootstrap', express.static('./node_modules/bootstrap/dist/css'));
+app.use('/css/datatables-buttons-bs5', express.static('./node_modules/datatables.net-buttons-bs5/css'));
+//app.use('/css/font-awesome', express.static('./node_modules/font-awesome/css'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

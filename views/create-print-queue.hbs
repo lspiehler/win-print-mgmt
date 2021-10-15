@@ -2,7 +2,7 @@
 <p>Welcome to {{title}}</p>-->
 <form onsubmit="submitForm(); return false;">
     <table>
-        <tr><td>Servers:</td><td><select class="form-control" id="servers" multiple>
+        <tr><td>Servers:</td><td><select onchange="clearDrivers();" class="form-control" id="servers" multiple>
             <!--<option value="DESKTOP-UF8E9D5">DESKTOP-UF8E9D5</option>
             <option value="DESKTOP-UF8E9D6">DESKTOP-UF8E9D6</option>
             <option value="DESKTOP-UF8E9D7">DESKTOP-UF8E9D7</option>
@@ -15,10 +15,12 @@
         <tr><td>Driver:</td><td>
             <div class="form-row">
                 <div class="form-group">
-                    <select onchange="getDriverTemplate(this)" name="driver" id="driver"></select>
+                    <select onchange="getDriverTemplate(this)" name="driver" id="driver">
+                        <option value="false">Query for drivers after selecting servers</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <button class="btn btn-info" type="button" onclick="getDrivers();">Get Drivers</button>
+                    <button class="btn btn-info" type="button" onclick="getDrivers();">Get Drivers</button><span style="margin-left: 10px;" id="drivertemp"></span>
                 </div>
             </div>    
             </td></tr>
@@ -43,6 +45,21 @@
         </tr>
         <tr><td colspan=2><input type="submit" class="btn btn-primary" value="Submit" /></td></tr>
     </table>
+    <div class="modal fade" id="activityModal" aria-labelledby="activityModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="activityModalLabel">Activity Log</h5>
+                <!--<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
+            </div>
+            <div  class="modal-body"></div>
+            <div class="modal-footer">
+                <span id="current">0</span> / <span id="total"></span>
+                <button id="closeprogress" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+            </div>
+        </div>
+    </div>
 
 <script>
     var drivertemplate = false;
@@ -68,12 +85,50 @@
 
         httpRequest({options: options}, function(err, resp) {
             if(resp.body.result!='success') {
+                driverTemplateStatus(false);
                 drivertemplate = false;
             } else {
                 drivertemplate = resp.body.data;
+                driverTemplateStatus(true);
                 //console.log(driver);
             }
         });
+    }
+
+    function clearDrivers() {
+        let driver = document.getElementById('driver');
+        driver.options.length = 0;
+        var option = document.createElement("option");
+        option.text = 'Query for drivers after selecting servers';
+        option.value = 'false';
+        driver.add(option);
+        let drivertemp = document.getElementById('drivertemp');
+        drivertemp.innerHTML = '';
+    }
+
+    function driverTemplateStatus(status) {
+        let drivertemp = document.getElementById('drivertemp');
+        drivertemp.innerHTML = '';
+        //console.log('here')
+        //console.log(status)
+        if(status) {
+            let facheck = document.createElement('i');
+            facheck.className = 'fa fa-check';
+            facheck.style.color = 'green';
+            drivertemp.appendChild(facheck);
+            let span = document.createElement('span');
+            span.innerText = ' Template Found!';
+            drivertemp.appendChild(span);
+            drivertemp.title = JSON.stringify(drivertemplate, null, 2);
+        } else {
+            let facheck = document.createElement('i');
+            facheck.className = 'fa fa-times';
+            facheck.style.color = 'red';
+            drivertemp.appendChild(facheck);
+            let span = document.createElement('span');
+            span.innerText = ' No Template Found!';
+            drivertemp.appendChild(span);
+        }
     }
 
     function getDrivers() {
@@ -91,8 +146,22 @@
                     option.value = drivers.body[i];
                     driver.add(option);
                 }
+                getDriverTemplate(driver);
             }
         });
+    }
+
+    function updateProgress() {
+        let current = document.getElementById('current');
+        current.innerText = parseInt(current.innerText) + 1;
+    }
+
+    function appendActivityLog(line) {
+        let activitymodal = $('#activityModal');
+        let p = document.createElement('p');
+        p.className = 'log';
+        p.innerText = line;
+        activitymodal.find('.modal-body').append(p);
     }
 
     function submitForm() {
@@ -112,6 +181,24 @@
                 return false;
         }
 
+        let driver = getSelectedOptions(properties.driver)[0];
+
+        if(driver == 'false') {
+            alert('A valid driver must be selected!');
+            return;
+        }
+
+        let closeprogress = document.getElementById('closeprogress');
+        closeprogress.style.display = 'none';
+
+        let activitymodal = $('#activityModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+        activitymodal.modal('show');
+
+        appendActivityLog('Processing port creation...');
+
         let request = {
             servers: getSelectedOptions(properties.servers),
             objects: [
@@ -120,19 +207,25 @@
                 }
             ]
         }
+
+        let total = document.getElementById('total');
+        total.innerText = request.servers.length * request.objects.length;
+        //console.log(request.servers.length * request.objects.length);
         /*let portjob = new portJob();
         let portjobs = portjob.createJobQueue(request);*/
         let jobmanager = new jobManager({maxqueue: 4});
         jobmanager.processJobs(request, '/api/printer/port/create',
         //portjob.processJobs(portjobs,
         function(e) {
-            console.log(e);
+            appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.ip + ' - ' + e.response.body.message);
+            updateProgress()
+            //console.log(e);
         },
         function(err, resp) {
             if(err) {
                 console.log(err);
             } else {
-                console.log('ports done');
+                //console.log('ports done');
                 let trays = getSelectedOptions(properties.trays);
                 if(trays.length <= 0) {
                     trays = [0];
@@ -142,8 +235,6 @@
                     servers: getSelectedOptions(properties.servers),
                     objects: []
                 }
-
-                let driver = getSelectedOptions(properties.driver)[0];
 
                 for(let i = 0; i <= trays.length - 1; i++) {
                     //console.log('here');
@@ -172,11 +263,19 @@
                                 options: drivertemplate[parseInt(trays[i])].options
                             }
                         ]
-                        console.log(object);
+                        //console.log(object);
                     }
 
                     request.objects.push(object)
                 }
+
+                let current = document.getElementById('current');
+                current.innerText = 0;
+
+                let total = document.getElementById('total');
+                total.innerText = request.servers.length * request.objects.length;
+
+                appendActivityLog('Processing queue creation...');
 
                 /*console.log(driver);
                 console.log(request);
@@ -186,14 +285,17 @@
                 //console.log(printerjobs);
                 jobmanager.processJobs(request, '/api/printer/queue/create',
                 function(e) {
-                    console.log(e);
+                    appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message);
+                    updateProgress();
                 },
                 function(err, resp) {
                     if(err) {
                         console.log(err);
                     } else {
-                        console.log('printers done');
-                        console.log(resp);
+                        let closeprogress = document.getElementById('closeprogress');
+                        closeprogress.style.display = 'inline';
+                        //console.log('printers done');
+                        //console.log(resp);
                     }
                 });
             }
