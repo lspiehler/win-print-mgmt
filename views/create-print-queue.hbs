@@ -164,6 +164,22 @@
         activitymodal.find('.modal-body').append(p);
     }
 
+    var initLog = function(message, totaljobs) {
+        let activitymodal = $('#activityModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+        activitymodal.find('.modal-body').html('');
+        appendActivityLog(message);
+        activitymodal.modal('show');
+        let closeprogress = document.getElementById('closeprogress');
+        closeprogress.style.display = 'none';
+        let total = document.getElementById('total');
+        let current = document.getElementById('current');
+        current.innerText = 0;
+        total.innerText = totaljobs;
+    }
+
     function submitForm() {
         let properties = getInputElements();
 
@@ -188,17 +204,6 @@
             return;
         }
 
-        let closeprogress = document.getElementById('closeprogress');
-        closeprogress.style.display = 'none';
-
-        let activitymodal = $('#activityModal').modal({
-            backdrop: 'static',
-            keyboard: false
-        });
-        activitymodal.modal('show');
-
-        appendActivityLog('Processing port creation...');
-
         let request = {
             servers: getSelectedOptions(properties.servers),
             objects: [
@@ -208,8 +213,7 @@
             ]
         }
 
-        let total = document.getElementById('total');
-        total.innerText = request.servers.length * request.objects.length;
+        initLog('Processing port creation...', request.servers.length * request.objects.length);
         //console.log(request.servers.length * request.objects.length);
         /*let portjob = new portJob();
         let portjobs = portjob.createJobQueue(request);*/

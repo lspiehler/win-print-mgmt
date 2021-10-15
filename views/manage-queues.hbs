@@ -53,6 +53,26 @@
     </div>
   </div>
 </div>
+<div class="modal fade" id="activityModal" aria-labelledby="activityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="activityModalLabel">Activity Log</h5>
+            <!--<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
+        </div>
+        <div  class="modal-body"></div>
+        <div class="modal-footer">
+            <span id="current">0</span> / <span id="total"></span>
+            <button id="closeprogress" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+</div>
+<div id="overlay" style="display:none;">
+    <div class="spinner"></div>
+    <br/>
+    Processing...
+</div>
 <script>
     var printerarr;
     var table;
@@ -74,6 +94,8 @@
     var updateSettings = function() {
         let c = confirm('Are you sure you want to modify the selected queues?');
         if(c===true) {
+            $('#settingsModal').modal('hide');
+            //console.log(requests);
             let table = document.getElementById('optionstable');
             let options = {};
             for(let i = 0; i <= table.rows.length - 1; i++) {
@@ -88,21 +110,92 @@
                     }
                 }
             }
-            let requests = createRequests(options);
+            let apipath;
             if(settingstype=='queuesettings') {
-                runJobs(requests, '/api/printer/queue/set', 0, function(err, resp) {
-                    console.log('done');
-                });
+                apipath = '/api/printer/queue/set';
             } else if('printsettings') {
-                runJobs(requests, '/api/printer/queue/setconfig', 0, function(err, resp) {
-                    console.log('done');
-                });
+                qpipath = '/api/printer/queue/setconfig';
             } else {
                 console.log('Unrecognized settings type');
                 return;
             }
+            let requests = createRequests(options);
+            createPorts(requests,
+                function(e) {
+                    appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.ip + ' - ' + e.response.body.message);
+                    updateProgress();
+                }, function(err, resp) {
+                    let sum = 0;
+                    for(let i = 0; i <= requests.length - 1; i++) {
+                        sum = sum + requests[i].servers.length * requests[i].objects.length;
+                    }
+                    if(resp) {
+                        //log was initialized by port creation
+                        initLog('Processing queue requests...', sum, false);
+                    } else {
+                        initLog('Processing queue requests...', sum, true);
+                    }
+                    runJobs(requests, apipath, 0,
+                    function(e) {
+                        appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' -> ' + JSON.stringify(e.request.body.options) + ' ' + e.response.body.message);
+                        updateProgress();
+                    }, function(err, resp) {
+                        let closeprogress = document.getElementById('closeprogress');
+                        closeprogress.style.display = 'inline';
+                    });
+                }
+            );
         } else {
             console.log('User cancelled');
+        }
+    }
+
+    var createPorts = function(requests, ecallback, callback) {
+        if(requests[0].objects[0].options.hasOwnProperty('PortName')) {
+            console.log('must add ports first');
+            //get a deduped list of servers
+            let servers = [];
+            for(let i = 0; i <= requests.length - 1; i++) {
+                for(let j = 0; j <= requests[i].servers.length - 1; j++) {
+                    if(servers.indexOf(requests[i].servers[j]) < 0) {
+                        servers.push(requests[i].servers[j]);
+                    } else {
+                        console.log('server already exists');
+                    }
+                }
+            }
+            console.log(servers);
+            let request = {
+                servers: servers,
+                objects: [
+                    {
+                        ip: requests[0].objects[0].options.PortName
+                    }
+                ]
+            }
+
+            console.log(request);
+
+            initLog('Processing port creation...', request.servers.length * request.objects.length, true);
+            //console.log(request.servers.length * request.objects.length);
+            /*let portjob = new portJob();
+            let portjobs = portjob.createJobQueue(request);*/
+            let jobmanager = new jobManager({maxqueue: 4});
+            jobmanager.processJobs(request, '/api/printer/port/create',
+            //portjob.processJobs(portjobs,
+            function(e) {
+                ecallback(e);
+                //console.log(e);
+            },
+            function(err, resp) {
+                if(err) {
+                    console.log(err);
+                } else {
+                    callback(false, true);
+                }
+            });
+        } else {
+            callback(false, false);
         }
     }
 
@@ -144,6 +237,25 @@
         cell2.appendChild(input);
     }
 
+    var initLog = function(message, totaljobs, clear) {
+        let activitymodal = $('#activityModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+        if(clear) {
+            //console.log('modal should show');
+            activitymodal.find('.modal-body').html('');
+            activitymodal.modal('show');
+        }
+        appendActivityLog(message);
+        let closeprogress = document.getElementById('closeprogress');
+        closeprogress.style.display = 'none';
+        let total = document.getElementById('total');
+        let current = document.getElementById('current');
+        current.innerText = 0;
+        total.innerText = totaljobs;
+    }
+
     var setPrintSettings = function() {
         settingstype = 'printsettings';
         let settingsmodal = $('#settingsModal');
@@ -172,7 +284,7 @@
             var rows_selected = table.column(0).checkboxes.selected();
             $.each(rows_selected, function(index, rowId){
                 //console.log(table.cell($(this).attr('value'), 'Servers:name').data());
-                console.log(index + ' - ' + rowId);
+                //console.log(index + ' - ' + rowId);
                 let request = {
                     servers: table.cell(table.row('#' + rowId).index(), 'Servers:name').data(),
                     objects: [
@@ -242,8 +354,18 @@
 
     var deleteQueues = function() {
         let requests = createRequests();
+        if(requests.length <= 0) {
+            alert('You must select one or more queues.');
+            return;
+        }
         let c = confirm('Are you sure you want to delete the following queues?\r\n' + JSON.stringify(requests, null, 2));
         if(c===true) {
+            let sum = 0;
+            for(let i = 0; i <= requests.length - 1; i++) {
+                sum = sum + requests[i].servers.length * requests[i].objects.length;
+            }
+            initLog('Processing queue deletion...', sum, true);
+            //console.log(requests);
             runJobs(requests, '/api/printer/queue/delete', 0,
             function(e) {
                 if(e.response.body.result == 'success') {
@@ -258,19 +380,38 @@
                         //console.log(table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data())
                         //console.log(removed)
                         //table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').render();
-                        table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').invalidate().draw();
+                        table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').invalidate().draw(false);
                     }
-                    console.log(e);
+                    //console.log(e);
+
                 } else {
-                    console.log('deletion failed');
-                    console.log(e);
+                    //console.log('deletion failed');
+                    //console.log(e);
                 }
+                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message);
+                updateProgress();
             }, function(err, resp) {
-                console.log('done');
+                //console.log('done');
+                let closeprogress = document.getElementById('closeprogress');
+                closeprogress.style.display = 'inline';
             });
         } else {
             console.log('request is cancelled');
         }
+    }
+
+    function appendActivityLog(line) {
+        let activitymodal = $('#activityModal');
+        let p = document.createElement('p');
+        p.className = 'log';
+        p.innerText = line;
+        //console.log(activitymodal.scrollHeight);
+        //console.log(activitymodal.offsetHeight);
+        var iScrollHeight = activitymodal.prop("scrollHeight") - (activitymodal.height() - 20);
+        //console.log(iScrollHeight);
+        //console.log(activitymodal.scrollTop());
+        activitymodal.animate({ scrollTop: iScrollHeight }, "slow");
+        activitymodal.find('.modal-body').append(p);
     }
 
     var runJobs = function(requests, apipath, index, ecallback, callback) {
@@ -295,7 +436,13 @@
         }
     }
 
+    function updateProgress() {
+        let current = document.getElementById('current');
+        current.innerText = parseInt(current.innerText) + 1;
+    }
+
     var submitForm = function() {
+        $('#overlay').fadeIn();
         let properties = getInputElements();
         let search = false;
         //console.log(getSelectedOptions(properties.searchprop)[0]);
@@ -334,6 +481,7 @@
                     initDatatable(printers.body);
                 } );
             }
+            $('#overlay').fadeOut();
         });
     }
 
@@ -363,7 +511,7 @@
                 {
                     text: 'Set Queue Options',
                     action: function() {
-                        setPrintOptions();
+                        setQueueOptions();
                     }
                 }
             ],
