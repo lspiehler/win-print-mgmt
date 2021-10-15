@@ -114,9 +114,9 @@
             if(settingstype=='queuesettings') {
                 apipath = '/api/printer/queue/set';
             } else if('printsettings') {
-                qpipath = '/api/printer/queue/setconfig';
+                apipath = '/api/printer/queue/setconfig';
             } else {
-                console.log('Unrecognized settings type');
+                alert('Unrecognized settings type');
                 return;
             }
             let requests = createRequests(options);
@@ -137,7 +137,7 @@
                     }
                     runJobs(requests, apipath, 0,
                     function(e) {
-                        appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' -> ' + JSON.stringify(e.request.body.options) + ' ' + e.response.body.message);
+                        appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' -> ' + JSON.stringify(e.request.body.options) + ' ' + e.response.body.message || '');
                         updateProgress();
                     }, function(err, resp) {
                         let closeprogress = document.getElementById('closeprogress');
