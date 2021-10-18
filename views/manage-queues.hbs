@@ -164,7 +164,7 @@
                     }
                 }
             }
-            console.log(servers);
+            //console.log(servers);
             let request = {
                 servers: servers,
                 objects: [
@@ -174,7 +174,7 @@
                 ]
             }
 
-            console.log(request);
+            //console.log(request);
 
             initLog('Processing port creation...', request.servers.length * request.objects.length, true);
             //console.log(request.servers.length * request.objects.length);
@@ -486,8 +486,14 @@
     }
 
     var submitForm = function() {
-        $('#overlay').fadeIn();
         let properties = getInputElements();
+        let servers = getSelectedOptions(properties.servers);
+
+        if(servers.length <= 0) {
+            alert('You must select at least one server! 🙄');
+            return ;
+        }
+        $('#overlay').fadeIn();
         let search = false;
         //console.log(getSelectedOptions(properties.searchprop)[0]);
         if(properties.searchvalue.value.trim() != '') {
@@ -500,10 +506,8 @@
 
         let updatecache = false;
 
-
-
         let request = {
-            servers: getSelectedOptions(properties.servers),
+            servers: servers,
             combine: true,
             search: search,
             updatecache: properties.updatecache.checked
