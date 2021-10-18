@@ -133,8 +133,15 @@
 
     function getDrivers() {
         let properties = getInputElements();
+
+        let servers = getSelectedOptions(properties.servers);
+
+        if(servers.length <= 0) {
+            alert('You must select at least one server! 🙄');
+            return false;
+        }
         
-        getCommonDrivers({ servers: getSelectedOptions(properties.servers) }, function(err, drivers) {
+        getCommonDrivers({ servers: servers }, function(err, drivers) {
             if(err) {
                 //console.log(err);
             } else {
@@ -192,9 +199,11 @@
             }
         }
 
-        if(getSelectedOptions(properties.servers).length <= 0) {
-            alert('You must select one or more servers.');
-                return false;
+        let servers = getSelectedOptions(properties.servers);
+
+        if(servers.length <= 0) {
+            alert('You must select at least one server! 🙄');
+            return false;
         }
 
         let driver = getSelectedOptions(properties.driver)[0];
@@ -205,7 +214,7 @@
         }
 
         let request = {
-            servers: getSelectedOptions(properties.servers),
+            servers: servers,
             objects: [
                 {
                     ip: properties.port.value
