@@ -278,6 +278,50 @@
         settingsmodal.modal('show');
     }
 
+    var clearQueue = function() {
+        let c = confirm('Are you sure you want to clear all print jobs from the selected queues?');
+        if(c===true) {
+            let requests = createRequests();
+            let sum = 0;
+            for(let i = 0; i <= requests.length - 1; i++) {
+                sum = sum + requests[i].servers.length * requests[i].objects.length;
+            }
+            initLog('Submitting requests to clear print jobs...', sum, true);
+            //console.log(requests);
+            runJobs(requests, '/api/printer/queue/flush', 0,
+            function(e) {
+                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message);
+                updateProgress();
+            }, function(err, resp) {
+                //console.log('done');
+                let closeprogress = document.getElementById('closeprogress');
+                closeprogress.style.display = 'inline';
+            });
+        }
+    }
+
+    var printTestPage = function() {
+        let c = confirm('Are you sure you want to send test pages to the selected queues?');
+        if(c===true) {
+            let requests = createRequests();
+            let sum = 0;
+            for(let i = 0; i <= requests.length - 1; i++) {
+                sum = sum + requests[i].servers.length * requests[i].objects.length;
+            }
+            initLog('Submitting test pages...', sum, true);
+            //console.log(requests);
+            runJobs(requests, '/api/printer/queue/testpage', 0,
+            function(e) {
+                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message);
+                updateProgress();
+            }, function(err, resp) {
+                //console.log('done');
+                let closeprogress = document.getElementById('closeprogress');
+                closeprogress.style.display = 'inline';
+            });
+        }
+    }
+
     var createRequests = function(options) {
         let requests = [];
         try {
@@ -513,7 +557,20 @@
                     action: function() {
                         setQueueOptions();
                     }
-                }
+                },
+                {
+                    text: 'Clear Queue',
+                    action: function() {
+                        clearQueue();
+                    }
+                },
+                {
+                    text: 'Print Test Page',
+                    action: function() {
+                        printTestPage();
+                    }
+                },
+                
             ],
             data: data,
             select: {
