@@ -3,7 +3,7 @@
     <table>
         <tr><td>Servers:</td><td><select class="form-control" id="servers" multiple>
     {{#each inventory}}
-            <option value="{{this.name}}">{{this.name}}</option>
+            <option value="{{this}}">{{this}}</option>
     {{/each}}
         </select></td></tr>
         <tr><td>Force Cache Update <input type="checkbox" id="updatecache" /></td></tr>

@@ -18,7 +18,12 @@ router.get('/create-print-queue', function(req, res, next) {
     if(err) {
       res.render('error', { message: err });
     } else {
-      res.render('create-print-queue', { inventory: inventory });
+      let sorted = [];
+      for(let i = 0; i <= inventory.length - 1; i++) {
+        sorted.push(inventory[i].name);
+      }
+      sorted.sort();
+      res.render('create-print-queue', { inventory: sorted });
     }
   });
 });
@@ -28,7 +33,12 @@ router.get('/manage-queues', function(req, res, next) {
     if(err) {
       res.render('error', { message: err });
     } else {
-      res.render('manage-queues', { inventory: inventory });
+      let sorted = [];
+      for(let i = 0; i <= inventory.length - 1; i++) {
+        sorted.push(inventory[i].name);
+      }
+      sorted.sort();
+      res.render('manage-queues', { inventory: sorted });
     }
   });
 });
