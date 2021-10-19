@@ -643,12 +643,31 @@
                     name: "ShareName"
                 },
                 { 
+                    data: "PrinterStatus",
+                    title: "Status",
+                    name: "Status",
+                    render: function(data, type, row, meta) {
+                        if(row['PrinterStatus'] == '0') {
+                            return 'Ready';
+                        } else if(row['PrinterStatus'] == '2') {
+                            return 'Error';
+                        } else {
+                            return row['PrinterStatus'];
+                        }
+                    }
+                },
+                { 
+                    data: "JobCount",
+                    title: "JobCount",
+                    name: "JobCount"
+                },
+                { 
                     data: "Servers",
                     title: "Servers",
                     name: "Servers",
                     render: function(data, type, row, meta) {
                         //console.log(row);
-                        return row['Servers'].length;
+                        return '<span title="' + row['Servers'].join('<br />') + '">' + row['Servers'].length + '</span>';
                     }
                 },
             ]
