@@ -647,12 +647,33 @@
                     title: "Status",
                     name: "Status",
                     render: function(data, type, row, meta) {
-                        if(row['PrinterStatus'] == '0') {
-                            return 'Ready';
-                        } else if(row['PrinterStatus'] == '2') {
-                            return 'Error';
-                        } else {
-                            return row['PrinterStatus'];
+                        switch (row['PrinterStatus']) {
+                            case 0:
+                                return 'Ready';
+                                break;
+                            case 1:
+                                return 'Paused';
+                                break;
+                            case 2:
+                                return 'Error';
+                                break;
+                            case 3:
+                                return 'Paused - Error';
+                                break;
+                            case 4:
+                                return 'Deleting';
+                                break;
+                            case 128:
+                                return 'Deleting';
+                                break;
+                            case 130:
+                                return 'Error - Offline';
+                                break;
+                            case 131072:
+                                return 'Toner/Ink Low';
+                                break;
+                            default:
+                                return row['PrinterStatus'];
                         }
                     }
                 },
