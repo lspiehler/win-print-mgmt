@@ -193,6 +193,122 @@ var jobManager = function(params) {
     }
 }
 
+var getMissingPorts = function(params, callback) {
+    let options = {
+        path: '/api/printer/port/list',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }
+
+    let body = {
+        servers: params.servers,
+        combine: true,
+        updatecache: true
+    }
+
+    let portdedupe = {}
+
+    for(let i = 0; i <= params.ports.length - 1; i++) {
+        if(!portdedupe.hasOwnProperty(params.ports[i])) {
+            portdedupe[params.ports[i]] = null;
+        }
+    }
+
+    let dedupedports = Object.keys(portdedupe);
+
+    //console.log(dedupedports);
+    //console.log(params.servers);
+
+    httpRequest({options: options, body: body}, function(err, resp) {
+        let ports = {};
+        for(let i = 0; i <= resp.body.length - 1; i++) {
+            ports[resp.body[i].Name] = resp.body[i].Servers
+        }
+        let portrequests = {};
+        //console.log(ports);
+        for(let i = 0; i <= dedupedports.length - 1; i++) {
+            if(ports.hasOwnProperty(dedupedports[i])) {
+                let missing = [];
+                for(let j = 0; j <= params.servers.length - 1; j++) {
+                    //console.log(ports[dedupedports[i]])
+                    //console.log(ports[dedupedports[i]][j]);
+                    //console.log(params.servers.join(','));
+                    //let index = params.servers.indexOf(ports[dedupedports[i]][j])
+                    //console.log(ports[dedupedports[i]].indexOf(params.servers[j]));
+                    if(ports[dedupedports[i]].indexOf(params.servers[j]) < 0) {
+                        missing.push(params.servers[j]);
+                    }
+                    //console.log(params.servers[j]);
+                    //console.log(JSON.stringify(ports[dedupedports[i]]));
+                }
+                if(missing.length <= 0) {
+                    //console.log(dedupedports[i] + " exists on all destination servers")
+                } else {
+                    //console.log(dedupedports[i] + " missing on " + missing.join(', '))
+                    if(portrequests.hasOwnProperty(missing.join(''))) {
+                        portrequests[missing.join('')].objects.push({ ip: dedupedports[i] })
+                    } else {
+                        let request = {
+                            servers: missing,
+                            objects: [
+                                {
+                                    ip: dedupedports[i]
+                                }
+                            ]
+                        }
+                        portrequests[missing.join('')] = request;
+                    }
+                }
+                //console.log(dedupedports[i] + " exists on at least one server");
+            } else {
+                //console.log(dedupedports[i] + " needs to be created on all destination servers");
+                if(portrequests.hasOwnProperty('all')) {
+                    portrequests['all'].objects.push({ ip: dedupedports[i] })
+                } else {
+                    let request = {
+                        servers: params.servers,
+                        objects: [
+                            {
+                                ip: dedupedports[i]
+                            }
+                        ]
+                    }
+                    portrequests['all'] = request;
+                }
+            }
+        }
+        let keys = Object.keys(portrequests);
+        let requests = [];
+        for(let i = 0; i <= keys.length - 1; i++) {
+            requests.push(portrequests[keys[i]]);
+        }
+        callback(false, requests);
+    });
+}
+
+var processMultipleRequests = function(params, ecallback, callback) {
+    if(!params['index']) {
+        params['index'] = 0
+    }
+    //console.log(params.index);
+    if(params.index <= params.requests.length - 1) {
+        let jobmanager = new jobManager({maxqueue: 4});
+        jobmanager.processJobs(params.requests[params.index], params.apipath,
+        //portjob.processJobs(portjobs,
+        function(e) {
+            ecallback(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.ip + ' - ' + e.response.body.message);
+        },
+        function(err, resp) {
+            params.index = params.index + 1;
+            processMultipleRequests(params, ecallback, callback);
+        });
+    } else {
+        callback(false, 'done');
+    }
+}
+
 var getInputElements = function() {
     var properties = {};
 

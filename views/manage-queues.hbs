@@ -91,62 +91,194 @@
         return table;
     }
 
-    var updateSettings = function() {
-        let c = confirm('Are you sure you want to modify the selected queues?');
-        if(c===true) {
-            $('#settingsModal').modal('hide');
-            //console.log(requests);
-            let table = document.getElementById('optionstable');
-            let options = {};
-            for(let i = 0; i <= table.rows.length - 1; i++) {
-                if(table.rows[i].className=="optionsrow") {
-                    let property = getSelectedOptions(table.rows[i].getElementsByClassName('optionproperty')[0])[0];
-                    let value = table.rows[i].getElementsByClassName('optionvalue')[0].value;
-                    if(options.hasOwnProperty(property)) {
-                        alert('The same property should not be selected twice!');
-                        return;
-                    } else {
-                        options[property] = value;
-                    }
+    var createMissingPorts = function(params, callback) {
+        if(params.requests.length >= 1) {
+            processMultipleRequests({requests: params.requests, apipath: '/api/printer/port/create'}, function(e) {
+                appendActivityLog(e);
+                updateProgress();
+            }, function(err, resp) {
+                callback(false, resp);
+            });
+        } else {
+            callback(false, false);
+        }
+    }
+
+    var getQueueData = function(params, callback) {
+        if(!params['index']) {
+            params['index'] = 0;
+        }
+        //console.log(params.request.objects);
+        //console.log(params.index);
+        if(params.index <= params.request.objects.length - 1) {
+            let options = {
+                path: '/api/printer/queue/getconfigs',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
             }
-            let apipath;
-            if(settingstype=='queuesettings') {
-                apipath = '/api/printer/queue/set';
-            } else if('printsettings') {
-                apipath = '/api/printer/queue/setconfig';
-            } else {
-                alert('Unrecognized settings type');
-                return;
+
+            let body = {
+                servers: [params.request.objects[params.index].source],
+                name: params.request.objects[params.index].name
             }
-            let requests = createRequests(options);
-            createPorts(requests,
-                function(e) {
-                    appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.ip + ' - ' + e.response.body.message);
+
+            httpRequest({options: options, body: body}, function(err, resp) {
+                if(err) {
+                    console.log(err);
+                } else {
+                    console.log(resp.body.data[0].response);
+                    params.request.objects[params.index]['config'] = [
+                        {
+                            type: 8,
+                            options: {
+                                dmDefaultSource: resp.body.data[0].response.data.dmDefaultSource,
+                                dmColor: resp.body.data[0].response.data.dmColor,
+                                dmDuplex: resp.body.data[0].response.data.dmDuplex
+                            }
+                        }
+                    ]
+                }
+                params.index = params.index + 1;
+                updateProgress();
+                getQueueData(params, callback);
+            });
+        } else {
+            callback(false, true);
+        }
+    }
+
+    var updateSettings = function() {
+        if(settingstype=='copyqueue') {
+            let c = confirm('Are you sure you want to copy the selected queues to the selected servers?');
+            if(c===true) {
+                 $('#settingsModal').modal('hide');
+                let properties = getInputElements();
+                let ports = [];
+                let servers = getSelectedOptions(properties.destination);
+                var rows_selected = table.column(0).checkboxes.selected();
+                let request = {
+                    servers: servers,
+                    objects: []
+                }
+                $.each(rows_selected, function(index, rowId){
+                    let queue = table.row('#' + rowId).data();
+
+                    let object = {
+                        name: queue.Name,
+                        port: queue.PortName,
+                        comment: queue.Comment,
+                        location: queue.Location,
+                        shared: queue.Shared,
+                        sharename: queue.ShareName,
+                        driver: queue.DriverName,
+                        source: queue.Servers[0]
+                    }
+                    ports.push(queue.PortName);
+                    request.objects.push(object)
+                });
+                initLog('Generating list of ports missing on destination servers...', 1, true);
+                getMissingPorts({servers: servers, ports: ports}, function(err, portrequests) {
                     updateProgress();
-                }, function(err, resp) {
-                    let sum = 0;
-                    for(let i = 0; i <= requests.length - 1; i++) {
-                        sum = sum + requests[i].servers.length * requests[i].objects.length;
+                    console.log(portrequests.length);
+                    if(portrequests.length >= 1) {
+                        let total = 0;
+                        for(let i = 0; i <= portrequests.length - 1; i++) {
+                            total = total + (portrequests[i].servers.length * portrequests[i].objects.length)
+                        }
+                        initLog('Creating missing ports on destination servers...', total, false);
                     }
-                    if(resp) {
-                        //log was initialized by port creation
-                        initLog('Processing queue requests...', sum, false);
-                    } else {
-                        initLog('Processing queue requests...', sum, true);
+                    createMissingPorts({requests: portrequests}, function(err, resp) {
+                        if(resp) {
+                            appendActivityLog('Port creation completed');
+                        } else {
+                            appendActivityLog('All required ports already exist');
+                        }
+                        initLog('Requesting configuration from all queues...', request.objects.length, false);
+                        getQueueData({request: request}, function(err, queuedata) {
+                            //console.log(request);
+                            let jobmanager = new jobManager({maxqueue: 4});
+                            //let printerjobs = printerjob.createJobQueue(request);
+                            //console.log(printerjobs);
+                            initLog('Creating selected queues on destination servers...', request.servers.length * request.objects.length, false);
+                            jobmanager.processJobs(request, '/api/printer/queue/create',
+                            function(e) {
+                                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message);
+                                updateProgress();
+                            },
+                            function(err, resp) {
+                                if(err) {
+                                    console.log(err);
+                                } else {
+                                    let closeprogress = document.getElementById('closeprogress');
+                                    closeprogress.style.display = 'inline';
+                                    //console.log('printers done');
+                                    //console.log(resp);
+                                }
+                            });
+                        });
+                    });
+                });
+                //console.log(request);
+            }
+        } else {
+            let c = confirm('Are you sure you want to modify the selected queues?');
+            if(c===true) {
+                $('#settingsModal').modal('hide');
+                //console.log(requests);
+                let table = document.getElementById('optionstable');
+                let options = {};
+                for(let i = 0; i <= table.rows.length - 1; i++) {
+                    if(table.rows[i].className=="optionsrow") {
+                        let property = getSelectedOptions(table.rows[i].getElementsByClassName('optionproperty')[0])[0];
+                        let value = table.rows[i].getElementsByClassName('optionvalue')[0].value;
+                        if(options.hasOwnProperty(property)) {
+                            alert('The same property should not be selected twice!');
+                            return;
+                        } else {
+                            options[property] = value;
+                        }
                     }
-                    runJobs(requests, apipath, 0,
+                }
+                let apipath;
+                if(settingstype=='queuesettings') {
+                    apipath = '/api/printer/queue/set';
+                } else if('printsettings') {
+                    apipath = '/api/printer/queue/setconfig';
+                } else {
+                    alert('Unrecognized settings type');
+                    return;
+                }
+                let requests = createRequests(options);
+                createPorts(requests,
                     function(e) {
-                        appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' -> ' + JSON.stringify(e.request.body.options) + ' ' + e.response.body.message || '');
+                        appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.ip + ' - ' + e.response.body.message);
                         updateProgress();
                     }, function(err, resp) {
-                        let closeprogress = document.getElementById('closeprogress');
-                        closeprogress.style.display = 'inline';
-                    });
-                }
-            );
-        } else {
-            console.log('User cancelled');
+                        let sum = 0;
+                        for(let i = 0; i <= requests.length - 1; i++) {
+                            sum = sum + requests[i].servers.length * requests[i].objects.length;
+                        }
+                        if(resp) {
+                            //log was initialized by port creation
+                            initLog('Processing queue requests...', sum, false);
+                        } else {
+                            initLog('Processing queue requests...', sum, true);
+                        }
+                        runJobs(requests, apipath, 0,
+                        function(e) {
+                            appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' -> ' + JSON.stringify(e.request.body.options) + ' ' + e.response.body.message || '');
+                            updateProgress();
+                        }, function(err, resp) {
+                            let closeprogress = document.getElementById('closeprogress');
+                            closeprogress.style.display = 'inline';
+                        });
+                    }
+                );
+            } else {
+                console.log('User cancelled');
+            }
         }
     }
 
@@ -275,6 +407,23 @@
         let options = ['PortName', 'Location', 'DriverName'];
         settingsmodal.find('.modal-body').html(createOptionsTable(options));
         addOptionsRow(options);
+        settingsmodal.modal('show');
+    }
+
+    var copyQueue = function() {
+        let requests = createRequests();
+        if(requests.length <= 0) {
+            alert('You must select one or more queues.');
+            return;
+        }
+        settingstype = 'copyqueue';
+        let settingsmodal = $('#settingsModal');
+        //console.log(configmodal);
+        settingsmodal.find('.modal-title').text('Copy Queue');
+        let destination = document.getElementById('servers').cloneNode(true);
+        destination.id = 'destination';
+        settingsmodal.find('.modal-body').html('');
+        settingsmodal.find('.modal-body').append(destination);
         settingsmodal.modal('show');
     }
 
@@ -574,7 +723,12 @@
                         printTestPage();
                     }
                 },
-                
+                {
+                    text: 'Copy Queue',
+                    action: function() {
+                        copyQueue();
+                    }
+                }
             ],
             data: data,
             select: {
@@ -688,7 +842,7 @@
                     name: "Servers",
                     render: function(data, type, row, meta) {
                         //console.log(row);
-                        return '<span title="' + row['Servers'].join('<br />') + '">' + row['Servers'].length + '</span>';
+                        return '<span title="' + row['Servers'].join('\r\n') + '">' + row['Servers'].length + '</span>';
                     }
                 },
             ]
