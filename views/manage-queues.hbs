@@ -131,7 +131,7 @@
                 if(err) {
                     console.log(err);
                 } else {
-                    console.log(resp.body.data[0].response);
+                    //console.log(resp.body.data[0].response);
                     params.request.objects[params.index]['config'] = [
                         {
                             type: 8,
@@ -184,7 +184,7 @@
                 initLog('Generating list of ports missing on destination servers...', 1, true);
                 getMissingPorts({servers: servers, ports: ports}, function(err, portrequests) {
                     updateProgress();
-                    console.log(portrequests.length);
+                    //console.log(portrequests.length);
                     if(portrequests.length >= 1) {
                         let total = 0;
                         for(let i = 0; i <= portrequests.length - 1; i++) {
@@ -258,7 +258,7 @@
                     let servers = [];
                     let ports = [];
                     for(let i = 0; i <= requests.length - 1; i++) {
-                        console.log(requests[i]);
+                        //console.log(requests[i]);
                         for(let j = 0; j <= requests[i].servers.length - 1; j++) {
                             if(servers.indexOf(requests[i].servers[j]) < 0) {
                                 servers.push(requests[i].servers[j]);
@@ -321,7 +321,7 @@
                     });
                 }
             } else {
-                console.log('User cancelled');
+                //console.log('User cancelled');
             }
         }
     }
@@ -591,7 +591,7 @@
 
             httpRequest({options: options, body: body}, function(err, resp) {
                 //console.log('out');
-                console.log(resp.body.data);
+                //console.log(resp.body.data);
                 for(let i = 0; i <= resp.body.data.length - 1; i++) {
                     let response = {
                         server: resp.body.data[i].request.host,
@@ -655,7 +655,7 @@
                 closeprogress.style.display = 'inline';
             });
         } else {
-            console.log('request is cancelled');
+            //console.log('request is cancelled');
         }
     }
 
@@ -732,7 +732,7 @@
             updatecache: properties.updatecache.checked
         }
 
-        console.log(request);
+        //console.log(request);
 
         listPrinters(request, function(err, printers) {
             /*printerarr = printers.body;
