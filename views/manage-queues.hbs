@@ -7,10 +7,12 @@
     {{/each}}
         </select></td></tr>
         <tr><td>Force Cache Update <input type="checkbox" id="updatecache" /></td></tr>
+        <tr><td>Combine Duplicate Queues <input type="checkbox" checked id="dedupequeues" /></td></tr>
     </table>
     <select id="searchprop">
         <option value="Name">Queue Name</option>
         <option value="PortName">Port Name</option>
+        <option value="DriverName">Driver Name</option>
     </select>
     <input type="text" id="searchvalue" />
     <input type="submit" class="btn btn-primary" value="Submit" />
@@ -77,6 +79,7 @@
     var printerarr;
     var table;
     var settingstype;
+    var dedupe;
 
     var createOptionsTable = function(options) {
         let table = document.createElement('table');
@@ -167,15 +170,15 @@
 
                     let object = {
                         name: queue.Name,
-                        port: queue.PortName,
-                        comment: queue.Comment,
-                        location: queue.Location,
-                        shared: queue.Shared,
-                        sharename: queue.ShareName,
-                        driver: queue.DriverName,
+                        port: queue.PortName[0],
+                        comment: queue.Comment[0],
+                        location: queue.Location[0],
+                        shared: queue.Shared[0],
+                        sharename: queue.ShareName[0],
+                        driver: queue.DriverName[0],
                         source: queue.Servers[0]
                     }
-                    ports.push(queue.PortName);
+                    ports.push(queue.PortName[0]);
                     request.objects.push(object)
                 });
                 initLog('Generating list of ports missing on destination servers...', 1, true);
@@ -251,38 +254,79 @@
                     return;
                 }
                 let requests = createRequests(options);
-                createPorts(requests,
+                if(requests[0].objects[0].options.hasOwnProperty('PortName')) {
+                    let servers = [];
+                    let ports = [];
+                    for(let i = 0; i <= requests.length - 1; i++) {
+                        console.log(requests[i]);
+                        for(let j = 0; j <= requests[i].servers.length - 1; j++) {
+                            if(servers.indexOf(requests[i].servers[j]) < 0) {
+                                servers.push(requests[i].servers[j]);
+                            }
+                        }
+                        for(let j = 0; j <= requests[i].objects.length - 1; j++) {
+                            if(ports.indexOf(requests[i].objects[j].options.PortName) < 0) {
+                                ports.push(requests[i].objects[j].options.PortName);
+                            }
+                        }
+                    }
+                    //console.log(servers);
+                    //console.log(ports);
+                    //return;
+                    initLog('Generating list of ports missing on destination servers...', 1, true);
+                    getMissingPorts({servers: servers, ports: ports}, function(err, portrequests) {
+                        updateProgress();
+                        //console.log(portrequests.length);
+                        if(portrequests.length >= 1) {
+                            let total = 0;
+                            for(let i = 0; i <= portrequests.length - 1; i++) {
+                                total = total + (portrequests[i].servers.length * portrequests[i].objects.length)
+                            }
+                            initLog('Creating missing ports on destination servers...', total, false);
+                        }
+                        createMissingPorts({requests: portrequests}, function(err, resp) {
+                            if(resp) {
+                                appendActivityLog('Port creation completed');
+                            } else {
+                                appendActivityLog('All required ports already exist');
+                            }
+                            let sum = 0;
+                            for(let i = 0; i <= requests.length - 1; i++) {
+                                sum = sum + requests[i].servers.length * requests[i].objects.length;
+                            }
+                            initLog('Updating selected queues on destination servers...', sum, false);
+                            runJobs(requests, apipath, 0,
+                            function(e) {
+                                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' -> ' + JSON.stringify(e.request.body.options) + ' ' + e.response.body.message || '');
+                                updateProgress();
+                            }, function(err, resp) {
+                                let closeprogress = document.getElementById('closeprogress');
+                                closeprogress.style.display = 'inline';
+                            });
+                        });
+                    });
+                } else {
+                    let sum = 0;
+                    for(let i = 0; i <= requests.length - 1; i++) {
+                        sum = sum + requests[i].servers.length * requests[i].objects.length;
+                    }
+                    initLog('Updating selected queues on destination servers...', sum, true);
+                    runJobs(requests, apipath, 0,
                     function(e) {
-                        appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.ip + ' - ' + e.response.body.message);
+                        appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' -> ' + JSON.stringify(e.request.body.options) + ' ' + e.response.body.message || '');
                         updateProgress();
                     }, function(err, resp) {
-                        let sum = 0;
-                        for(let i = 0; i <= requests.length - 1; i++) {
-                            sum = sum + requests[i].servers.length * requests[i].objects.length;
-                        }
-                        if(resp) {
-                            //log was initialized by port creation
-                            initLog('Processing queue requests...', sum, false);
-                        } else {
-                            initLog('Processing queue requests...', sum, true);
-                        }
-                        runJobs(requests, apipath, 0,
-                        function(e) {
-                            appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' -> ' + JSON.stringify(e.request.body.options) + ' ' + e.response.body.message || '');
-                            updateProgress();
-                        }, function(err, resp) {
-                            let closeprogress = document.getElementById('closeprogress');
-                            closeprogress.style.display = 'inline';
-                        });
-                    }
-                );
+                        let closeprogress = document.getElementById('closeprogress');
+                        closeprogress.style.display = 'inline';
+                    });
+                }
             } else {
                 console.log('User cancelled');
             }
         }
     }
 
-    var createPorts = function(requests, ecallback, callback) {
+    /*var createPorts = function(requests, ecallback, callback) {
         if(requests[0].objects[0].options.hasOwnProperty('PortName')) {
             console.log('must add ports first');
             //get a deduped list of servers
@@ -301,7 +345,7 @@
                 servers: servers,
                 objects: [
                     {
-                        ip: requests[0].objects[0].options.PortName
+                        ip: requests[0].objects[0].options.PortName[0]
                     }
                 ]
             }
@@ -310,8 +354,8 @@
 
             initLog('Processing port creation...', request.servers.length * request.objects.length, true);
             //console.log(request.servers.length * request.objects.length);
-            /*let portjob = new portJob();
-            let portjobs = portjob.createJobQueue(request);*/
+            //let portjob = new portJob();
+            //let portjobs = portjob.createJobQueue(request);
             let jobmanager = new jobManager({maxqueue: 4});
             jobmanager.processJobs(request, '/api/printer/port/create',
             //portjob.processJobs(portjobs,
@@ -329,7 +373,7 @@
         } else {
             callback(false, false);
         }
-    }
+    }*/
 
     var deleteRow = function(e) {
         let table = document.getElementById('optionstable');
@@ -389,6 +433,11 @@
     }
 
     var setPrintSettings = function() {
+        let requests = createRequests();
+        if(requests.length <= 0) {
+            alert('You must select one or more queues.');
+            return;
+        }
         settingstype = 'printsettings';
         let settingsmodal = $('#settingsModal');
         //console.log(configmodal);
@@ -400,11 +449,16 @@
     }
 
     var setQueueOptions = function() {
+        let requests = createRequests();
+        if(requests.length <= 0) {
+            alert('You must select one or more queues.');
+            return;
+        }
         settingstype = 'queuesettings';
         let settingsmodal = $('#settingsModal');
         //console.log(configmodal);
         settingsmodal.find('.modal-title').text('Change Queue Options');
-        let options = ['PortName', 'Location', 'DriverName'];
+        let options = ['PortName', 'Location', 'DriverName', 'Comment'];
         settingsmodal.find('.modal-body').html(createOptionsTable(options));
         addOptionsRow(options);
         settingsmodal.modal('show');
@@ -428,6 +482,11 @@
     }
 
     var clearQueue = function() {
+        let requests = createRequests();
+        if(requests.length <= 0) {
+            alert('You must select one or more queues.');
+            return;
+        }
         let c = confirm('Are you sure you want to clear all print jobs from the selected queues?');
         if(c===true) {
             let requests = createRequests();
@@ -450,6 +509,11 @@
     }
 
     var printTestPage = function() {
+        let requests = createRequests();
+        if(requests.length <= 0) {
+            alert('You must select one or more queues.');
+            return;
+        }
         let c = confirm('Are you sure you want to send test pages to the selected queues?');
         if(c===true) {
             let requests = createRequests();
@@ -475,14 +539,16 @@
         let requests = [];
         try {
             var rows_selected = table.column(0).checkboxes.selected();
+            //console.log(rows_selected);
             $.each(rows_selected, function(index, rowId){
+                let queue = table.row('#' + rowId).data();
                 //console.log(table.cell($(this).attr('value'), 'Servers:name').data());
-                //console.log(index + ' - ' + rowId);
+                //console.log(queue);
                 let request = {
-                    servers: table.cell(table.row('#' + rowId).index(), 'Servers:name').data(),
+                    servers: queue.Servers,
                     objects: [
                         {
-                            name: table.cell(table.row('#' + rowId).index(), 'Name:name').data(),
+                            name: queue.Name,
                             rowId: rowId
                         }
                     ]
@@ -655,14 +721,18 @@
 
         let updatecache = false;
 
+        dedupe = properties.dedupequeues.checked;
+
+        //console.log(properties.dedupequeues.checked);
+
         let request = {
             servers: servers,
-            combine: true,
+            combine: properties.dedupequeues.checked,
             search: search,
             updatecache: properties.updatecache.checked
         }
 
-        //console.log(request);
+        console.log(request);
 
         listPrinters(request, function(err, printers) {
             /*printerarr = printers.body;
@@ -800,7 +870,7 @@
                     data: "PrinterStatus",
                     title: "Status",
                     name: "Status",
-                    render: function(data, type, row, meta) {
+                    /*render: function(data, type, row, meta) {
                         switch (row['PrinterStatus']) {
                             case 0:
                                 return 'Ready';
@@ -829,7 +899,8 @@
                             default:
                                 return row['PrinterStatus'];
                         }
-                    }
+                        return row['PrinterStatus'].join(', ');
+                    }*/
                 },
                 { 
                     data: "JobCount",
@@ -842,7 +913,11 @@
                     name: "Servers",
                     render: function(data, type, row, meta) {
                         //console.log(row);
-                        return '<span title="' + row['Servers'].join('\r\n') + '">' + row['Servers'].length + '</span>';
+                        if(dedupe) {
+                            return '<span index="" title="' + row['Servers'].join('\r\n') + '">' + row['Servers'].length + '</span>';
+                        } else {
+                            return '<span>' + row['Servers'][0] + '</span>';
+                        }
                     }
                 },
             ]
