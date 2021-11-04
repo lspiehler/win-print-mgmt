@@ -168,7 +168,31 @@
                 $.each(rows_selected, function(index, rowId){
                     let queue = table.row('#' + rowId).data();
                     //console.log(queue);
+                    //console.log(Object.keys(queue));
                     let object = {
+                        source: queue.Servers[0]
+                    }
+                    let copyproperties = [
+                        'Name',
+                        'PortName',
+                        'Comment',
+                        'Location',
+                        'Shared',
+                        'ShareName',
+                        'DriverName',
+                        'Published'
+                    ]
+                    for(let i = 0; i <= copyproperties.length - 1; i++) {
+                        //console.log(typeof(queue[copyproperties[i]]))
+                        if(typeof(queue[copyproperties[i]])=='object') {
+                            if(queue[copyproperties[i]].length > 0) {
+                                object[copyproperties[i].toLowerCase()] = queue[copyproperties[i]][0];
+                            }
+                        } else {
+                            object[copyproperties[i].toLowerCase()] = queue[copyproperties[i]]
+                        }
+                    }
+                    /*let object = {
                         name: queue.Name,
                         port: queue.PortName[0],
                         comment: queue.Comment[0],
@@ -177,10 +201,12 @@
                         sharename: queue.ShareName[0],
                         driver: queue.DriverName[0],
                         source: queue.Servers[0]
-                    }
+                    }*/
                     ports.push(queue.PortName[0]);
                     request.objects.push(object)
                 });
+                //console.log(request);
+                //return;
                 initLog('Generating list of ports missing on destination servers...', 1, true);
                 getMissingPorts({servers: servers, ports: ports}, function(err, portrequests) {
                     updateProgress();
