@@ -167,7 +167,7 @@
                 }
                 $.each(rows_selected, function(index, rowId){
                     let queue = table.row('#' + rowId).data();
-
+                    //console.log(queue);
                     let object = {
                         name: queue.Name,
                         port: queue.PortName[0],
