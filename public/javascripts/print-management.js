@@ -11,20 +11,30 @@ function httpRequest(params, callback) {
     
     request.onload = function() {
         //if (request.status >= 200 && request.status < 301) {
-        try {
-            var resp = {
-                statusCode: request.status,
-                body: JSON.parse(request.responseText)
-            }
-            callback(null, resp);
-        } catch(e) {
+        if(request.status == 401) {
             var resp = {
                 id: params.id,
                 options: params.options,
                 statusCode: request.status,
                 body: request.responseText
             }
-            callback(e, resp);
+            callback('401', resp);
+        } else {
+            try {
+                var resp = {
+                    statusCode: request.status,
+                    body: JSON.parse(request.responseText)
+                }
+                callback(null, resp);
+            } catch(e) {
+                var resp = {
+                    id: params.id,
+                    options: params.options,
+                    statusCode: request.status,
+                    body: request.responseText
+                }
+                callback(e, resp);
+            }
         }
     };
 
@@ -69,7 +79,16 @@ var getCommonDrivers = function(params, callback) {
     }
 
     httpRequest({options: options, body: body}, function(err, resp) {
-        callback(err, resp);
+        if(err) {
+            if(err=='401') {
+                alert('You are no longer logged in!');
+            } else {
+                console.log(err);
+            }
+            callback(err, resp);
+        } else {
+            callback(false, resp);
+        }
     });
 }
 
@@ -88,8 +107,7 @@ var listPrinters = function(params, callback) {
 
     httpRequest({options: options, body: body}, function(err, resp) {
         if(err) {
-            callback(err, false);
-            return false;
+            callback(err, resp);
         } else {
             callback(false, resp);
         }

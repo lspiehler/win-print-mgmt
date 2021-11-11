@@ -1,8 +1,87 @@
 var createError = require('http-errors');
 var express = require('express');
+var expressSession = require('express-session');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var methodOverride = require('method-override');
+const config = require('./config');
+const db = require('./db');
+
+if(config.MSFTAUTH) {
+  var passport = require("passport");
+}
+
+if(config.MSFTAUTH) {
+  var msftconfig = require("./msftconfig");
+  var OIDCStrategy = require('passport-azure-ad').OIDCStrategy;
+
+  /*passport.serializeUser(function(user, done) {
+    //done(null, user.oid);
+    done(null, JSON.stringify(user));
+  });
+
+  passport.deserializeUser(function(user, done) {
+    //findByOid(oid, function (err, user) {
+      done(null, JSON.parse(user));
+    //});
+  });*/
+
+  passport.serializeUser(function(user, done) {
+    done(null, user.oid);
+  });
+
+  passport.deserializeUser(function(oid, done) {
+    db.users.getUser(oid, function (err, user) {
+      done(err, user);
+    });
+  });
+
+  // array to hold logged in users
+
+  passport.use(new OIDCStrategy({
+    identityMetadata: msftconfig.creds.identityMetadata,
+    clientID: msftconfig.creds.clientID,
+    responseType: msftconfig.creds.responseType,
+    responseMode: msftconfig.creds.responseMode,
+    redirectUrl: msftconfig.creds.redirectUrl,
+    allowHttpForRedirectUrl: msftconfig.creds.allowHttpForRedirectUrl,
+    clientSecret: msftconfig.creds.clientSecret,
+    validateIssuer: msftconfig.creds.validateIssuer,
+    isB2C: msftconfig.creds.isB2C,
+    issuer: msftconfig.creds.issuer,
+    passReqToCallback: msftconfig.creds.passReqToCallback,
+    scope: msftconfig.creds.scope,
+    loggingLevel: msftconfig.creds.loggingLevel,
+    nonceLifetime: msftconfig.creds.nonceLifetime,
+    nonceMaxAmount: msftconfig.creds.nonceMaxAmount,
+    useCookieInsteadOfSession: msftconfig.creds.useCookieInsteadOfSession,
+    cookieEncryptionKeys: msftconfig.creds.cookieEncryptionKeys,
+    clockSkew: msftconfig.creds.clockSkew,
+  },
+  function(iss, sub, profile, accessToken, refreshToken, done) {
+    if (!profile.oid) {
+      return done(new Error("No oid found"), null);
+    }
+    // asynchronous verification, for effect...
+    process.nextTick(function () {
+      db.users.getUser(profile.oid, function(err, user) {
+        if (err) {
+          return done(err);
+        }
+        if (!user) {
+          // "Auto-registration"
+          db.users.addUser(profile, function(err, result) {
+            return done(null, profile);
+          });
+        } else {
+          return done(null, user);
+        }
+      });
+    });
+  }
+  ));
+}
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -14,9 +93,16 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
 
+if(config.MSFTAUTH) {
+  app.use(methodOverride());
+  app.use(expressSession({ secret: config.MSFTSESSIONSECRET, resave: true, saveUninitialized: false }));
+  app.use(passport.initialize());
+  app.use(passport.session());
+}
+
 app.use(logger('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 

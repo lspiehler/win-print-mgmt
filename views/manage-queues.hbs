@@ -1,10 +1,9 @@
-<!--<h1>{{data}}</h1>-->
 <form onsubmit="submitForm(); return false;">
     <table>
         <tr><td>Servers:</td><td><select class="form-control" id="servers" multiple>
-    {{#each inventory}}
+        {{#each inventory}}
             <option value="{{this}}">{{this}}</option>
-    {{/each}}
+        {{/each}}
         </select></td></tr>
         <tr><td>Force Cache Update <input type="checkbox" id="updatecache" /></td></tr>
         <tr><td>Combine Duplicate Queues <input type="checkbox" checked id="dedupequeues" /></td></tr>
@@ -129,7 +128,12 @@
 
             httpRequest({options: options, body: body}, function(err, resp) {
                 if(err) {
-                    console.log(err);
+                    if(err=='401') {
+                        alert('You are no longer logged in!');
+                    } else {
+                        console.log(err);
+                    }
+                    callback(err, resp);
                 } else {
                     //console.log(resp.body.data[0].response);
                     params.request.objects[params.index]['config'] = [
@@ -616,23 +620,32 @@
             let responses = [];
 
             httpRequest({options: options, body: body}, function(err, resp) {
-                //console.log('out');
-                //console.log(resp.body.data);
-                for(let i = 0; i <= resp.body.data.length - 1; i++) {
-                    let response = {
-                        server: resp.body.data[i].request.host,
-                        queue: requests[0].objects[0].name,
-                        config: resp.body.data[i].response.data
+                if(err) {
+                    if(err=='401') {
+                        alert('You are no longer logged in!');
+                    } else {
+                        console.log(err);
                     }
-                    responses.push(response);
+                        callback(err, resp);
+                } else {
+                    //console.log('out');
+                    //console.log(resp.body.data);
+                    for(let i = 0; i <= resp.body.data.length - 1; i++) {
+                        let response = {
+                            server: resp.body.data[i].request.host,
+                            queue: requests[0].objects[0].name,
+                            config: resp.body.data[i].response.data
+                        }
+                        responses.push(response);
+                    }
+                    //console.log(JSON.stringify(responses, null, 2));
+                    let configmodal = $('#configModal');
+                    //console.log(configmodal);
+                    configmodal.find('.modal-title').html('Print Settings');
+                    configmodal.find('.modal-body').html('<pre>' + JSON.stringify(responses, null, 2) + '</pre>');
+                    configmodal.modal('show');
+                    //modal.show();
                 }
-                //console.log(JSON.stringify(responses, null, 2));
-                let configmodal = $('#configModal');
-                //console.log(configmodal);
-                configmodal.find('.modal-title').html('Print Settings');
-                configmodal.find('.modal-body').html('<pre>' + JSON.stringify(responses, null, 2) + '</pre>');
-                configmodal.modal('show');
-                //modal.show();
             });
         }
     }
@@ -761,20 +774,28 @@
         //console.log(request);
 
         listPrinters(request, function(err, printers) {
-            /*printerarr = printers.body;
-            for(let i = 0; i <= printerarr.length - 1; i++) {
-                printerarr[i].index = i;
-            }*/
-            if ( $.fn.DataTable.isDataTable( '#example' ) ) {
-                //$('#example').DataTable().clear();
-                table.destroy();
-                initDatatable(printers.body);
+            if(err) {
+                if(err=='401') {
+                    let ok = confirm('You are no longer logged in. Click OK to be redirected to the login screen.')
+                    if(ok) {
+                        window.location = '/login'
+                    }
+                } else {
+                    console.log(err);
+                }
+                $('#overlay').fadeOut();
             } else {
-                $(document).ready(function() {
+                if ( $.fn.DataTable.isDataTable( '#example' ) ) {
+                    //$('#example').DataTable().clear();
+                    table.destroy();
                     initDatatable(printers.body);
-                } );
+                } else {
+                    $(document).ready(function() {
+                        initDatatable(printers.body);
+                    } );
+                }
+                $('#overlay').fadeOut();
             }
-            $('#overlay').fadeOut();
         });
     }
 
@@ -783,19 +804,19 @@
             pageLength: 25,
             dom: 'Bfrtipl',
             buttons: [
-                {
+                {{#if user.isAdmin}}{
                     text: 'Delete',
                     action: function() {
                         deleteQueues();
                     }
-                },
+                },{{/if}}
                 {
                     text: 'Get Print Settings',
                     action: function() {
                         getPrintSettings();
                     }
                 },
-                {
+                {{#if user.isAdmin}}{
                     text: 'Set Print Settings',
                     action: function() {
                         setPrintSettings();
@@ -806,7 +827,7 @@
                     action: function() {
                         setQueueOptions();
                     }
-                },
+                },{{/if}}
                 {
                     text: 'Clear Queue',
                     action: function() {
@@ -819,16 +840,16 @@
                         printTestPage();
                     }
                 },
-                {
+                {{#if user.isAdmin}}{
                     text: 'Copy Queue',
                     action: function() {
                         copyQueue();
                     }
-                }
+                }{{/if}}
             ],
             data: data,
             select: {
-                'style': 'multi'
+                'style': {{#if user.isAdmin}}'os'{{else}}'single'{{/if}}
             },
             order: [[1, 'asc']],
             rowId: function(queue) {
@@ -839,7 +860,8 @@
                 {
                     'targets': 0,
                     'checkboxes': {
-                        'selectRow': true
+                        'selectRow': true,
+                        selectAll: {{#if user.isAdmin}}true{{else}}false{{/if}}
                     }
                 }
             ],
@@ -854,7 +876,7 @@
                 },*/
                 { 
                     data: "uid",
-                    title: "uid",
+                    title: "",
                     name: "uid"
                 },
                 { 
