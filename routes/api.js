@@ -18,8 +18,9 @@ function basicAuth(params) {
 
 function ensureAuthenticated(req, res, next) {
     if(config.BASICAUTH===false && config.MSFTAUTH===false) {
-        req.user.isAdmin = true;
-        return next();
+        req.user = {};
+    req.user.isAdmin = true;
+    return next();
     }
     if (req.isAuthenticated()) {
         if(req.user._json.groups.indexOf(config.MSFTADMINGROUPID) >= 0){
