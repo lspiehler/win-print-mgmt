@@ -178,7 +178,7 @@
                     }
                     let copyproperties = [
                         'Name',
-                        'PortName',
+                        //'PortName',
                         'Comment',
                         'Location',
                         'Shared',
@@ -188,6 +188,8 @@
                     ]
                     for(let i = 0; i <= copyproperties.length - 1; i++) {
                         //console.log(typeof(queue[copyproperties[i]]))
+                        //add port using IP instead of name
+                        object['portname'] = queue['PrinterHostAddress'][0];
                         if(typeof(queue[copyproperties[i]])=='object') {
                             if(queue[copyproperties[i]].length > 0) {
                                 object[copyproperties[i].toLowerCase()] = queue[copyproperties[i]][0];
@@ -206,7 +208,7 @@
                         driver: queue.DriverName[0],
                         source: queue.Servers[0]
                     }*/
-                    ports.push(queue.PortName[0]);
+                    ports.push(queue['PrinterHostAddress'][0]);
                     request.objects.push(object)
                 });
                 //console.log(request);
@@ -886,13 +888,42 @@
                 },
                 { 
                     data: "PortName",
-                    title: "Port",
-                    name: "Port"
+                    title: "PortName",
+                    name: "PortName",
+                    render: function(data, type, row, meta) {
+                        if(row['PortName']) {
+                            if(row['PrinterHostAddress'].join(',') != row['PortName'].join(',')) {
+                                return '<span style="color: #CCCC00;">' + row['PortName'].join(',') + '</span>';
+                            } else {
+                                return row['PortName'];
+                            }
+                        } else {
+                            console.log(row);
+                            return row['PortName'];
+                        }
+                        //console.log(row);
+                        //return row['PortName'];
+                    }
+                },
+                { 
+                    data: "PrinterHostAddress",
+                    title: "PortAddress",
+                    name: "PortAddress",
+                    render: function(data, type, row, meta) {
+                        let ports = [];
+                        for(let i = 0; i <= row['PrinterHostAddress'].length - 1; i++) {
+                            ports.push('<a target="_blank" href="http://' + row['PrinterHostAddress'][i] + '">' + row['PrinterHostAddress'][i] + '</a>');
+                        }
+                        return ports.join(',')
+                    }
                 },
                 { 
                     data: "DriverName",
                     title: "Driver",
-                    name: "Driver"
+                    name: "Driver",
+                    render: function(data, type, row, meta) {
+                        return '<span title="' + row['DriverName'].join(',') + '">' + row['DriverName'].join(',') + '</span>';
+                    }
                 },
                 { 
                     data: "Location",
