@@ -76,6 +76,9 @@ function basicAuth(params) {
 function ensureAuthenticated(req, res, next) {
   //auth if no authentication methods are enabled
   if(config.BASICAUTH===false && config.MSFTAUTH===false) {
+    if(!req.user) {
+      req.user = {};
+    }
     req.user.isAdmin = true;
     return next();
   }
