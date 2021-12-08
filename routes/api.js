@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 const serverapi = require('../api/server');
 const server = require('../lib/server');
+const service = require('../api/service');
 const printerapi = require('../api/printer');
 const dhcpapi = require('../api/dhcp');
 const config = require('../config');
@@ -16,6 +17,18 @@ function basicAuth(params) {
       return false;
     }
   }
+
+router.post('/service/cert/new', ensureAuthenticated, function(req, res, next) {
+    res.set('Cache-Control', 'public, max-age=0, no-cache');
+    service.replaceCert(req.body, function(err, resp) {
+        if(resp.headers) {
+            for(let i = 0; i <= resp.headers.length - 1; i++) {
+                res.set(resp.headers[i][0], resp.headers[i][1]);
+            }
+        }
+        res.status(resp.status).json(resp.body);
+    });
+});
 
 function ensureAuthenticated(req, res, next) {
     if(config.BASICAUTH===false && config.MSFTAUTH===false) {
