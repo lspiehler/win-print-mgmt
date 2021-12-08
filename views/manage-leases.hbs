@@ -1,0 +1,462 @@
+<form onsubmit="submitForm(); return false;">
+    <table>
+        <tr><td>Servers:</td><td><select class="form-control" id="servers" multiple>
+        {{#each inventory}}
+            <option value="{{this}}">{{this}}</option>
+        {{/each}}
+        </select></td></tr>
+        <tr><td>Force Cache Update <input type="checkbox" id="updatecache" /></td></tr>
+        <tr><td>Combine Duplicate Leases <input type="checkbox" checked id="dedupequeues" /></td></tr>
+    </table>
+    <select id="searchprop">
+        <option value="ClientId">MAC</option>
+        <option value="IPAddress">IP Address</option>
+        <option value="ScopeId">Scope Id</option>
+        <option value="HostName">Host Name</option>
+        <option value="AddressState">Address State</option>
+    </select>
+    <input type="text" id="searchvalue" />
+    <input type="submit" class="btn btn-primary" value="Submit" />
+</form>
+<!--<form onsubmit="getChecked(); return false;">-->
+    <!--<input type="button" onclick="deleteQueues();" value="Delete" />
+    <input type="button" onclick="getPrintSettings();" value="Get Print Settings" />
+    <input type="button" onclick="setPrintSettings();" value="Set Print Settings" />
+    <input type="button" onclick="setQueueOptions();" value="Set Queue Options" />-->
+    <hr>
+    <table id="example" class="display" style="width: 100%"></table>
+<div class="modal fade" id="activityModal" aria-labelledby="activityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="activityModalLabel">Activity Log</h5>
+            <!--<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
+        </div>
+        <div  class="modal-body"></div>
+        <div class="modal-footer">
+            <span id="current">0</span> / <span id="total"></span>
+            <button id="closeprogress" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+</div>
+<div id="overlay" style="display:none;">
+    <div class="spinner"></div>
+    <br/>
+    Processing...
+</div>
+<script>
+    var queryparms = {{{queryparms}}}
+    var table;
+
+    window.onload = function() {
+        if(queryparms.property) {
+            let searchvalue = document.getElementById('searchvalue');
+            searchvalue.value = queryparms.value;
+        }
+
+        if(queryparms.dedupe) {
+            let dedupequeues = document.getElementById('dedupequeues');
+            if(queryparms.dedupe == 'false') {
+                dedupequeues.checked = false;
+            }
+        }
+
+        if(queryparms.value) {
+            let searchprop = document.getElementById('searchprop');
+            for(let i = 0; i < searchprop.options.length; i++) {
+                if(searchprop.options[i].value.toUpperCase() == queryparms.property.toUpperCase()) {
+                    searchprop.options[i].selected = true;
+                    break;
+                }
+            }
+        }
+
+        if(queryparms.servers) {
+            let serverdd = document.getElementById('servers');
+            if(queryparms.servers=='all') {
+                for(let i = 0; i < serverdd.options.length; i++) {
+                    serverdd.options[i].selected = true;
+                }
+            } else {
+                let servers = queryparms.servers.split(',')
+                for(let i = 0; i < serverdd.options.length; i++) {
+                    for(let j = 0; j < servers.length; j++) {
+                        if(serverdd.options[i].value.toUpperCase() == servers[j].toUpperCase()) {
+                            serverdd.options[i].selected = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            submitForm();
+        }
+    }
+
+    var submitForm = function() {
+        let properties = getInputElements();
+        let servers = getSelectedOptions(properties.servers);
+
+        if(servers.length <= 0) {
+            alert('You must select at least one server! 🙄');
+            return ;
+        }
+        $('#overlay').fadeIn();
+        let search = false;
+        //console.log(getSelectedOptions(properties.searchprop)[0]);
+        if(properties.searchvalue.value.trim() != '') {
+            search = {
+                comparison: 'AND',
+                properties: {}
+            }
+            search.properties[getSelectedOptions(properties.searchprop)[0]] = properties.searchvalue.value.trim();
+        }
+
+        let updatecache = false;
+
+        dedupe = properties.dedupequeues.checked;
+
+        //console.log(properties.dedupequeues.checked);
+
+        let request = {
+            servers: servers,
+            combine: properties.dedupequeues.checked,
+            search: search,
+            updatecache: properties.updatecache.checked
+        }
+
+        //console.log(request);
+
+        listLeases(request, function(err, printers) {
+            if(err) {
+                if(err=='401') {
+                    let ok = confirm('You are no longer logged in. Click OK to be redirected to the login screen.')
+                    if(ok) {
+                        window.location = '/login'
+                    }
+                } else {
+                    console.log(err);
+                }
+                $('#overlay').fadeOut();
+            } else {
+                if ( $.fn.DataTable.isDataTable( '#example' ) ) {
+                    //$('#example').DataTable().clear();
+                    table.destroy();
+                    initDatatable(printers.body);
+                } else {
+                    $(document).ready(function() {
+                        initDatatable(printers.body);
+                    } );
+                }
+                $('#overlay').fadeOut();
+            }
+        });
+    }
+
+    var createRequests = function(options) {
+        let requests = [];
+        try {
+            var rows_selected = table.column(0).checkboxes.selected();
+            //console.log(rows_selected);
+            $.each(rows_selected, function(index, rowId){
+                let lease = table.row('#' + rowId).data();
+                //console.log(table.cell($(this).attr('value'), 'Servers:name').data());
+                //console.log(queue);
+                let request = {
+                    servers: lease.Servers,
+                    objects: [
+                        {
+                            clientid: lease.ClientId,
+                            scopeid: lease.ScopeId[0],
+                            rowId: rowId
+                        }
+                    ]
+                }
+
+                if(lease.AddressState[0].indexOf('eservation') >= 0) {
+                    request.objects[0].reservation = true;
+                }
+
+                if(options) {
+                    request.objects[0]['options'] = options;
+                }
+
+                requests.push(request);
+            });
+
+            return requests;
+        } catch(e) {
+            alert('You must first search for leases');
+        }
+    }
+
+    var runJobs = function(requests, apipath, index, ecallback, callback) {
+        if(!index) {
+            index = 0;
+        }
+        //console.log(index);
+        //console.log(requests.length);
+        if(index <= requests.length - 1) {
+            //console.log('run');
+            let jobmanager = new jobManager({maxqueue: 4});
+            jobmanager.processJobs(requests[index], apipath,
+            //portjob.processJobs(portjobs,
+            function(e) {
+                ecallback(e);
+            },
+            function(err, resp) {
+                runJobs(requests, apipath, index + 1, ecallback, callback);
+            });
+        } else {
+            callback(false, false);
+        }
+    }
+
+    var deleteLeases = function() {
+        let requests = createRequests();
+        if(requests.length <= 0) {
+            alert('You must select one or more leases.');
+            return;
+        }
+        let c = confirm('Are you sure you want to delete the following leases?\r\n' + JSON.stringify(requests, null, 2));
+        if(c===true) {
+            let sum = 0;
+            for(let i = 0; i <= requests.length - 1; i++) {
+                sum = sum + requests[i].servers.length * requests[i].objects.length;
+            }
+            initLog('Processing lease deletion(s)...', sum, true);
+            //console.log(requests);
+            runJobs(requests, '/api/dhcp/lease/delete', 0,
+            function(e) {
+                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.clientid + ' - ' + e.response.body.message);
+                updateProgress();
+            }, function(err, resp) {
+                //console.log('done');
+                let closeprogress = document.getElementById('closeprogress');
+                closeprogress.style.display = 'inline';
+            });
+        } else {
+
+        }
+    }
+
+    var reserveLease = function() {
+        let requests = createRequests();
+        if(requests.length <= 0) {
+            alert('You must select one or more leases.');
+            return;
+        }
+        let c = confirm('Are you sure you want to reserve the following leases?\r\n' + JSON.stringify(requests, null, 2));
+        if(c===true) {
+            let sum = 0;
+            for(let i = 0; i <= requests.length - 1; i++) {
+                sum = sum + requests[i].servers.length * requests[i].objects.length;
+            }
+            initLog('Processing lease reservation(s)...', sum, true);
+            //console.log(requests);
+            runJobs(requests, '/api/dhcp/lease/reserve', 0,
+            function(e) {
+                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.clientid + ' - ' + e.response.body.message);
+                updateProgress();
+            }, function(err, resp) {
+                //console.log('done');
+                let closeprogress = document.getElementById('closeprogress');
+                closeprogress.style.display = 'inline';
+            });
+        } else {
+
+        }
+    }
+
+    function updateProgress() {
+        let current = document.getElementById('current');
+        current.innerText = parseInt(current.innerText) + 1;
+    }
+
+    function appendActivityLog(line) {
+        let activitymodal = $('#activityModal');
+        let p = document.createElement('p');
+        p.className = 'log';
+        p.innerText = line;
+        //console.log(activitymodal.scrollHeight);
+        //console.log(activitymodal.offsetHeight);
+        var iScrollHeight = activitymodal.prop("scrollHeight") - (activitymodal.height() - 20);
+        //console.log(iScrollHeight);
+        //console.log(activitymodal.scrollTop());
+        activitymodal.animate({ scrollTop: iScrollHeight }, "slow");
+        activitymodal.find('.modal-body').append(p);
+    }
+
+    var initLog = function(message, totaljobs, clear) {
+        let activitymodal = $('#activityModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+        if(clear) {
+            //console.log('modal should show');
+            activitymodal.find('.modal-body').html('');
+            activitymodal.modal('show');
+        }
+        appendActivityLog(message);
+        let closeprogress = document.getElementById('closeprogress');
+        closeprogress.style.display = 'none';
+        let total = document.getElementById('total');
+        let current = document.getElementById('current');
+        current.innerText = 0;
+        total.innerText = totaljobs;
+    }
+
+    function initDatatable(data) {
+        let properties = getInputElements();
+        table = $('#example').DataTable( {
+            pageLength: 25,
+            dom: 'Bfrtipl',
+            buttons: [
+                //{{#if user.isAdmin}}{
+                {
+                    text: 'Delete',
+                    action: function() {
+                        deleteLeases();
+                    }
+                },//{{/if}}
+                {
+                    text: 'Reserve',
+                    action: function() {
+                        reserveLease();
+                    }
+                }/*,
+                {{#if user.isAdmin}}{
+                    text: 'Set Print Settings',
+                    action: function() {
+                        setPrintSettings();
+                    }
+                },
+                {
+                    text: 'Set Queue Options',
+                    action: function() {
+                        setQueueOptions();
+                    }
+                },{{/if}}
+                {
+                    text: 'Clear Queue',
+                    action: function() {
+                        clearQueue();
+                    }
+                },
+                {
+                    text: 'Print Test Page',
+                    action: function() {
+                        printTestPage();
+                    }
+                },
+                {{#if user.isAdmin}}{
+                    text: 'Copy Queue',
+                    action: function() {
+                        copyQueue();
+                    }
+                }{{/if}}*/
+            ],
+            data: data,
+            select: {
+                'style': {{#if user.isAdmin}}'os'{{else}}'single'{{/if}}
+            },
+            order: [[1, 'asc']],
+            rowId: function(queue) {
+                //console.log(queue);
+                return queue.uid;
+            },
+            'columnDefs': [
+                {
+                    'targets': 0,
+                    'checkboxes': {
+                        'selectRow': true,
+                        selectAll: {{#if user.isAdmin}}true{{else}}false{{/if}}
+                    }
+                }
+            ],
+            columns: [
+                /*{
+                    data: 'select',
+                    orderable: false,
+                    searchable: false,
+                    render: function(data, type, row, meta) {
+                        return '<input type="checkbox" value="' + row['uid'] + '" name="queue" />';
+                    }
+                },*/
+                { 
+                    data: "uid",
+                    title: "",
+                    name: "uid"
+                },
+                { 
+                    data: "ClientId",
+                    title: "MAC",
+                    name: "ClientId"
+                },
+                { 
+                    data: "IPAddress",
+                    title: "IPAddress",
+                    name: "IPAddress"
+                },
+                { 
+                    data: "ScopeId",
+                    title: "ScopeId",
+                    name: "ScopeId"
+                },
+                { 
+                    data: "HostName",
+                    title: "HostName",
+                    name: "HostName"
+                },
+                { 
+                    data: "AddressState",
+                    title: "AddressState",
+                    name: "AddressState"
+                },
+                { 
+                    data: "ClientType",
+                    title: "ClientType",
+                    name: "ClientType"
+                },
+                { 
+                    data: "Description",
+                    title: "Description",
+                    name: "Description"
+                },
+                { 
+                    data: "DnsRegistration",
+                    title: "DnsRegistration",
+                    name: "DnsRegistration"
+                },
+                { 
+                    data: "DnsRR",
+                    title: "DnsRR",
+                    name: "DnsRR"
+                },
+                { 
+                    data: "LeaseExpiryTime",
+                    title: "LeaseExpiryTime",
+                    name: "LeaseExpiryTime"
+                },
+                { 
+                    data: "Servers",
+                    title: "Servers",
+                    name: "Servers",
+                    render: function(data, type, row, meta) {
+                        //console.log(row);
+                        if(dedupe) {
+                            return '<span index="" title="' + row['Servers'].join('\r\n') + '">' + row['Servers'].length + '</span>';
+                        } else {
+                            return '<span>' + row['Servers'][0] + '</span>';
+                        }
+                    }
+                },
+            ]
+        } );
+        if(properties.dedupequeues.checked) {
+            table.buttons().disable();
+        } else {
+            table.buttons().enable();
+        }
+    }
+</script>

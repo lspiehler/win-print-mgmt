@@ -24,7 +24,7 @@
             </td></tr>
 
     <tr><td>Queue Name:</td><td><input class="form-control" type="text" id="queue" value="TestPrinter" /></td></tr>
-    <tr><td>Port FQDN/IP:</td><td><input class="form-control" type="text" id="port" value="10.254.202.22" /></td></tr>
+    <tr><td>Port FQDN/IP:</td><td><input class="form-control" type="text" id="port" value="10.211.1.49" /></td></tr>
     <tr><td>Location:</td><td><input class="form-control" type="text" id="location" /></td></tr>
     <tr><td>Comment:</td><td><input class="form-control" type="text" id="comment" /></td></tr>
     <tr><td>Shared:</td><td><input type="checkbox" id="shared" /></td></tr>
@@ -41,6 +41,7 @@
                 <button type="button" class="btn btn-warning" onclick="clearTrays();">Clear Tray Selection</button>
             </td>
         </tr>
+        {{#if config.dhcpenabled}}<tr><td>Enable DHCP:</td><td><input type="checkbox" checked id="dhcpintegration" /></td></tr>{{/if}}
         <tr><td colspan=2><input type="submit" class="btn btn-primary" value="Submit" /></td></tr>
     </table>
     <div class="modal fade" id="activityModal" aria-labelledby="activityModalLabel" aria-hidden="true">
@@ -61,6 +62,20 @@
 
 <script>
     var drivertemplate = false;
+    var dhcpenabled = {{#if config.dhcpenabled}}true{{else}}false{{/if}}
+
+    function DHCPIntegration() {
+        if(dhcpenabled) {
+            let dhcpintegration = document.getElementById('dhcpintegration');
+            if(dhcpintegration.checked) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
 
     function clearTrays() {
         let trays = document.getElementById('trays');
@@ -165,7 +180,7 @@
         let activitymodal = $('#activityModal');
         let p = document.createElement('p');
         p.className = 'log';
-        p.innerText = line;
+        p.innerHTML = line;
         activitymodal.find('.modal-body').append(p);
     }
 
@@ -218,6 +233,17 @@
                     ip: properties.port.value
                 }
             ]
+        }
+
+        if(DHCPIntegration()) {
+            var dhcp = new dhcpmgmt();
+            dhcp.search({ip: properties.port.value}, function(err, dchpipresults) {
+                if(err) {
+                    console.log('DHCP lease search failed: ' + err);
+                } else {
+                    console.log(dchpipresults);
+                }
+            });
         }
 
         initLog('Processing port creation...', request.servers.length * request.objects.length);
@@ -303,8 +329,41 @@
                     if(err) {
                         console.log(err);
                     } else {
-                        let closeprogress = document.getElementById('closeprogress');
-                        closeprogress.style.display = 'inline';
+                        if(DHCPIntegration()) {
+                            //console.log(dhcp.complete());
+                            if(!dhcp.complete()) {
+                                let log = dhcp.log();
+                                //console.log(log);
+                                for(let i = 0; i < log.length; i++) {
+                                    appendActivityLog(log[i]);
+                                }
+                                dhcp.monitorProgress(function(msg) {
+                                    appendActivityLog(msg);
+                                }, function(err, msgs) {
+                                    if(err) {
+                                        appendActivityLog(err);
+                                    } else {
+                                        //all logs should have been displayed in real-time
+                                    }
+                                    let closeprogress = document.getElementById('closeprogress');
+                                    closeprogress.style.display = 'inline';
+                                    return;
+                                })
+                            } else {
+                                let log = dhcp.log();
+                                //console.log(log);
+                                for(let i = 0; i < log.length; i++) {
+                                    appendActivityLog(log[i]);
+                                }
+                                let closeprogress = document.getElementById('closeprogress');
+                                closeprogress.style.display = 'inline';
+                                return;
+                            }
+                        } else {
+                            let closeprogress = document.getElementById('closeprogress');
+                            closeprogress.style.display = 'inline';
+                            return;
+                        }
                         //console.log('printers done');
                         //console.log(resp);
                     }

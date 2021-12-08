@@ -114,6 +114,28 @@ var listPrinters = function(params, callback) {
     });
 }
 
+var listLeases = function(params, callback) {
+    let options = {
+        path: '/api/dhcp/lease/list',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }
+
+    let body = params;
+    
+    body.combine = params.combine;
+
+    httpRequest({options: options, body: body}, function(err, resp) {
+        if(err) {
+            callback(err, resp);
+        } else {
+            callback(false, resp);
+        }
+    });
+}
+
 var jobManager = function(params) {
     var reqqueue = {};
     var jobqueue = {};

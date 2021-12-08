@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const server = require('../lib/server');
+const dhcpinventory = require('../lib/dhcp/inventory');
 const passport = require("passport");
 const msftconfig = require("../msftconfig");
 const config = require('../config');
@@ -34,7 +35,7 @@ router.get('/create-print-queue', ensureAuthenticated, function(req, res, next) 
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('create-print-queue', { title: 'qManager', inventory: sorted, user: req.user });
+      res.render('create-print-queue', { title: 'qManager', inventory: sorted, user: req.user, config: {dhcpenabled: config.ENABLEDHCP }});
     }
   });
 });
@@ -58,7 +59,23 @@ router.get('/manage-queues', ensureAuthenticated, function(req, res, next) {
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('manage-queues', { title: 'qManager', inventory: sorted, user: req.user });
+      res.render('manage-queues', { title: 'qManager', inventory: sorted, user: req.user, config: {dhcpenabled: config.ENABLEDHCP }});
+    }
+  });
+});
+
+router.get('/manage-leases', ensureAuthenticated, function(req, res, next) {
+  //console.log(req.query)
+  dhcpinventory.list({}, function(err, inventory) {
+    if(err) {
+      res.render('error', { message: err });
+    } else {
+      let sorted = [];
+      for(let i = 0; i <= inventory.length - 1; i++) {
+        sorted.push(inventory[i].name);
+      }
+      sorted.sort();
+      res.render('manage-leases', { title: 'qManager', inventory: sorted, user: req.user, queryparms: JSON.stringify(req.query) });
     }
   });
 });

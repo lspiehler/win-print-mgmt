@@ -3,6 +3,7 @@ var router = express.Router();
 const serverapi = require('../api/server');
 const server = require('../lib/server');
 const printerapi = require('../api/printer');
+const dhcpapi = require('../api/dhcp');
 const config = require('../config');
 const auth = require('basic-auth');
 
@@ -86,6 +87,19 @@ router.get('/server/:object/:action', ensureAuthenticated, function(req, res, ne
 router.post('/server/inventory/ping', function(req, res, next) {
     res.set('Cache-Control', 'public, max-age=0, no-cache');
     serverapi.inventory.ping(req.body, function(err, resp) {
+        if(resp.headers) {
+            for(let i = 0; i <= resp.headers.length - 1; i++) {
+                res.set(resp.headers[i][0], resp.headers[i][1]);
+            }
+        }
+        res.status(resp.status).json(resp.body);
+    });
+});
+
+//allow unauthenticated ping
+router.post('/dhcp/inventory/ping', function(req, res, next) {
+    res.set('Cache-Control', 'public, max-age=0, no-cache');
+    dhcpapi.inventory.ping(req.body, function(err, resp) {
         if(resp.headers) {
             for(let i = 0; i <= resp.headers.length - 1; i++) {
                 res.set(resp.headers[i][0], resp.headers[i][1]);
@@ -192,6 +206,39 @@ router.post('/printer/:object/:action', ensureAuthenticated, function(req, res, 
     res.set('Cache-Control', 'public, max-age=0, no-cache');
     if(printerapi.hasOwnProperty(req.params.object) && printerapi[req.params.object].hasOwnProperty(req.params.action)) {
         printerapi[req.params.object][req.params.action](req.body, function(err, resp) {
+            if(resp.headers) {
+                for(let i = 0; i <= resp.headers.length - 1; i++) {
+                    res.set(resp.headers[i][0], resp.headers[i][1]);
+                }
+            }
+            res.status(resp.status).json(resp.body);
+        });
+    } else {
+        let result = {
+            status: 404,
+            headers: [],
+            body: {
+                result: 'error',
+                message: 'No route found for ' + req.url,
+                data: null
+            }
+        }
+        if(result.headers) {
+            for(let i = 0; i <= result.headers.length - 1; i++) {
+                res.set(result.headers[i][0], result.headers[i][1]);
+            }
+        }
+        res.status(result.status).json(result.body);
+    }
+});
+
+router.post('/dhcp/:object/:action', ensureAuthenticated, function(req, res, next) {
+    //console.log(dhcpapi.hasOwnProperty(req.params.object));
+    //console.log(dhcpapi[req.params.object].hasOwnProperty(req.params.action));
+    //console.log(req.body);
+    res.set('Cache-Control', 'public, max-age=0, no-cache');
+    if(dhcpapi.hasOwnProperty(req.params.object) && dhcpapi[req.params.object].hasOwnProperty(req.params.action)) {
+        dhcpapi[req.params.object][req.params.action](req.body, function(err, resp) {
             if(resp.headers) {
                 for(let i = 0; i <= resp.headers.length - 1; i++) {
                     res.set(resp.headers[i][0], resp.headers[i][1]);

@@ -17,6 +17,7 @@ function getBoolean(str) {
 module.exports = {
     LISTENPORT: parseInt(process.env.LISTENPORT) || 80,
     BASICAUTH: getBoolean(process.env.BASICAUTH) || false,
+    ENABLEDHCP: getBoolean(process.env.ENABLEDHCP) || false,
 	BASICAUTHUSER: process.env.BASICAUTHUSER || false,
 	BASICAUTHPASS: process.env.BASICAUTHPASS || false,
 	MSFTAUTH: getBoolean(process.env.MSFTAUTH) || false,
