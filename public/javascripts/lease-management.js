@@ -159,7 +159,7 @@ var dhcpmgmt = function(params) {
             "search": {
                 "comparison": "AND",
                 "properties": {
-                    "IPAddress": params.ip
+                    "IPAddress": "\"" + params.ip + "\""
                 }
             },
             "updatecache": true
@@ -274,6 +274,15 @@ var dhcpmgmt = function(params) {
                     }
                 } else {
                     complete = true;
+                    let msg = 'No leases will be reserved because more than one was found';
+                    log.push(msg);
+                    if(progresscallback) {
+                        progresscallback(msg);
+                    }
+                    if(completedcallback) {
+                        completedcallback(false, log);
+                        return;
+                    }
                 }
                 //callback(false, resp.body);
             }
