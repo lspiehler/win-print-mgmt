@@ -20,7 +20,7 @@ router.get('/', ensureAuthenticated, function(req, res, next) {
     if(err) {
       res.render('error', { message: err });
     } else {
-      res.render('index', { title: 'qManager', inventory: inventory, user: req.user });
+      res.render('index', { title: 'qManager', inventory: inventory, user: req.user, config: {dhcpenabled: config.ENABLEDHCP }});
     }
   });
 });
