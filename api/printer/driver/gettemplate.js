@@ -154,14 +154,27 @@ var templates = {
 
 module.exports = function(params, callback) {
     //console.log(params);
-    if(templates.hasOwnProperty(params.server)) {
-        let result = {
-            status: 200,
-            headers: [],
-            body: {
-                result: 'success',
-                message: null,
-                data: templates[params.server]
+    if(templates.hasOwnProperty(params.server) || params.server == 'all') {
+        let result;
+        if(params.server == 'all') {
+            result = {
+                status: 200,
+                headers: [],
+                body: {
+                    result: 'success',
+                    message: null,
+                    data: templates
+                }
+            }
+        } else {
+            result = {
+                status: 200,
+                headers: [],
+                body: {
+                    result: 'success',
+                    message: null,
+                    data: templates[params.server]
+                }
             }
         }
         callback(false, result);

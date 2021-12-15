@@ -1,0 +1,329 @@
+<script src="/js/dropzone/dropzone-min.js"></script>
+<link
+  rel="stylesheet"
+  href="/js/dropzone/dropzone.css"
+  type="text/css"
+/>
+<table id="serverstable" style="display: none; margin-bottom: 10px;">
+    <tr>
+        <td>Servers:</td>
+        <td>
+            <select class="form-control" id="servers" multiple>
+                {{#each inventory}}
+                    <option value="{{this}}">{{this}}</option>
+                {{/each}}
+            </select>
+        </td>
+        <td style="width: 80%;">
+            <div style="overflow-y: scroll; margin-left: 20px; height: 100px; border: 1px solid black;" id="log"><p class="log">Progress log...</p></div>
+        </td>
+    </tr>
+</table>
+<!-- Example of a form that Dropzone can take over -->
+<form action="/upload/csv" class="dropzone"></form>
+<p id="csvtemplate" align="center"><a href="/template.csv">Download CSV Template</a></p>
+<table id="example" class="display" style="width: 100%"></table>
+<script>
+    var table;
+    Dropzone.autoDiscover = false;
+
+    let myDropzone = new Dropzone(".dropzone");
+    myDropzone.on("addedfile", file => {
+        console.log(`File added: ${file.name}`);
+        myDropzone.element.hidden = true;
+        document.getElementById('csvtemplate').style.display = 'none';
+        document.getElementById('serverstable').style.display = 'block';
+        console.log(myDropzone.element);
+    });
+    
+    myDropzone.on("success", function(file, response) {
+        console.log(response);
+        initDatatable(response);
+    });
+
+    function appendActivityLog(line) {
+        let log = document.getElementById('log');
+        let p = document.createElement('p');
+        p.className = 'log';
+        p.innerHTML = line;
+        log.appendChild(p);
+    }
+
+    var createMissingPorts = function(params, callback) {
+        //console.log(params);
+        if(params.requests.length >= 1) {
+            appendActivityLog('Queueing port creation requests');
+            processMultipleRequests({requests: params.requests, apipath: '/api/printer/port/create'}, function(e) {
+                appendActivityLog(e);
+                //updateProgress();
+            }, function(err, resp) {
+                if(err) {
+                    appendActivityLog('Port creation failure: ' + err);
+                } else {
+                    callback(false, resp);
+                }
+            });
+        } else {
+            callback(false, false);
+        }
+    }
+
+    function getDrivers(servers, callback) {
+        
+        getCommonDrivers({ servers: servers }, function(err, drivers) {
+            if(err) {
+                callback(err, false);
+            } else {
+                let hashdrivers = {};
+                for(let i = 0; i <= drivers.body.length - 1; i++) {
+                    hashdrivers[drivers.body[i]] = true;
+                }
+                callback(false, hashdrivers);
+            }
+        });
+    }
+
+    function getDriverTemplates(callback) {
+        //console.log(elem);
+        let options = {
+            path: '/api/printer/driver/gettemplate/all',
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+
+        let responses = [];
+
+        httpRequest({options: options}, function(err, resp) {
+            if(err) {
+                callback(err, false);
+            } else {
+                callback(false, resp.body.data);
+            }
+        });
+    }
+
+    function createQueues() {
+        let servers = getSelectedOptions(document.getElementById('servers'));
+        
+        if(servers.length <= 0) {
+            alert('You must select at least one server! 🙄');
+            return false;
+        }
+
+        let c = confirm('Are you sure you want to create the selected queues on the selected servers?');
+        if(c===true) {
+            getDriverTemplates(function(err, templates) {
+                if(err) {
+                    appendActivityLog('Failed getting driver templates from the server: ' + err);
+                    return false;
+                } else {
+                    console.log(templates);
+                    let csvports = [];
+                    let csvdrivers = {};
+                    var rows_selected = table.column(0).checkboxes.selected();
+                    let request = {
+                        servers: servers,
+                        objects: []
+                    }
+                    $.each(rows_selected, function(index, rowId){
+                        let queue = table.row('#' + rowId).data();
+                        for(let i = 0; i <= queue.Trays.length - 1; i++) {
+                            let name;
+                            if(queue.Trays[i]=='0') {
+                                name = queue.Name;
+                            } else {
+                                name = queue.Name + '-T' + queue.Trays[i]
+                            }
+                            let shared = false;
+                            if(queue.Shared.toUpperCase() == 'TRUE') {
+                                shared = true;
+                            }
+                            let object = {
+                                name: name,
+                                portname: queue.IP,
+                                comment: queue.Comment,
+                                location: queue.Location,
+                                shared: shared,
+                                drivername: queue.Driver
+                            }
+                            if(templates.hasOwnProperty(queue.Driver)) {
+                                object['config'] = [
+                                    {
+                                        type: 8,
+                                        options: drivertemplate[parseInt(queue.Trays[i])].options
+                                    }
+                                ]
+                            } else {
+                                //console.log('Template does not exist');
+                            }
+                            request.objects.push(object);
+                        }
+                        csvports.push(queue.IP);
+                        if(!csvdrivers.hasOwnProperty(queue.Driver)) {
+                            csvdrivers[queue.Driver] = true;
+                        }
+                    });
+                    //console.log(request);
+                    appendActivityLog('Retrieving a valid list of drivers from servers');
+                    getDrivers(servers, function(err, drivers) {
+                        if(err) {
+                            appendActivityLog('Failed to query servers for drivers');
+                        } else {
+                            let keys = Object.keys(csvdrivers);
+                            for(let i = 0; i <= keys.length - 1; i++) {
+                                if(!drivers.hasOwnProperty(keys[i])) {
+                                    alert('The driver "' + keys[i] + '" does not exist on all servers');
+                                    appendActivityLog('The driver "' + keys[i] + '" does not exist on all servers');
+                                    return false;
+                                }
+                            }
+                            appendActivityLog('Searching for missing ports');
+                            getMissingPorts({servers: servers, ports: csvports}, function(err, portrequests) {
+                                createMissingPorts({requests: portrequests}, function(err, resp) {
+                                    if(resp) {
+                                        appendActivityLog('Port creation completed');
+                                    } else {
+                                        appendActivityLog('All required ports already exist');
+                                    }
+                                    let jobmanager = new jobManager({maxqueue: 4});
+                                    //let printerjobs = printerjob.createJobQueue(request);
+                                    //console.log(printerjobs);
+                                    jobmanager.processJobs(request, '/api/printer/queue/create',
+                                    function(e) {
+                                        appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message);
+                                        //updateProgress();
+                                    },
+                                    function(err, resp) {
+                                        if(err) {
+                                            console.log(err);
+                                        } else {
+                                            appendActivityLog('Queue creation complete!');
+                                        }
+                                    });
+                                });
+                            });
+                        }
+                    })
+                }
+            });
+        }
+    }
+
+    function initDatatable(data) {
+        let properties = getInputElements();
+        table = $('#example').DataTable( {
+            pageLength: 100,
+            dom: 'Bfrtipl',
+            initComplete: function() {
+                this.api().rows().select();
+            },
+            buttons: [
+                {
+                    text: 'Create',
+                    action: function() {
+                        createQueues();
+                    }
+                }
+            ],
+            data: data,
+            select: {
+                'style': {{#if user.isAdmin}}'os'{{else}}'single'{{/if}}
+            },
+            order: [[1, 'asc']],
+            rowId: function(queue) {
+                //console.log(queue);
+                return queue.uid;
+            },
+            'columnDefs': [
+                {
+                    'targets': 0,
+                    'checkboxes': {
+                        'selectRow': true,
+                        selectAll: {{#if user.isAdmin}}true{{else}}false{{/if}}
+                    }
+                }
+            ],
+            columns: [
+                /*{
+                    data: 'uid',
+                    orderable: false,
+                    searchable: false,
+                    render: function(data, type, row, meta) {
+                        //console.log(data);
+                        return '<input type="checkbox" value="' + row['uid'] + '" name="queue" />';
+                    }
+                },*/
+                { 
+                    data: "uid",
+                    title: "",
+                    name: "uid"
+                },
+                { 
+                    data: "Name",
+                    title: "Name",
+                    name: "Name"
+                },
+                { 
+                    data: "Trays",
+                    title: "Trays",
+                    name: "Trays"
+                },
+                { 
+                    data: "Driver",
+                    title: "Driver",
+                    name: "Driver"
+                },
+                { 
+                    data: "IP",
+                    title: "IP",
+                    name: "IP"
+                },
+                { 
+                    data: "Port",
+                    title: "Port",
+                    name: "Port"
+                },
+                { 
+                    data: "Shared",
+                    title: "Shared",
+                    name: "Shared"
+                },
+                { 
+                    data: "Location",
+                    title: "Location",
+                    name: "Location"
+                },
+                { 
+                    data: "Comment",
+                    title: "Comment",
+                    name: "Comment"
+                },
+                { 
+                    data: "Success",
+                    title: "Success",
+                    name: "Success"
+                },
+                { 
+                    data: "Error",
+                    title: "Error",
+                    name: "Error"
+                }/*,
+                { 
+                    data: "Servers",
+                    title: "Servers",
+                    name: "Servers",
+                    render: function(data, type, row, meta) {
+                        //console.log(row);
+                        if(dedupe) {
+                            return '<span index="" title="' + row['Servers'].join('\r\n') + '">' + row['Servers'].length + '</span>';
+                        } else {
+                            return '<span>' + row['Servers'][0] + '</span>';
+                        }
+                    }
+                },*/
+            ]
+        } );
+    }
+</script>

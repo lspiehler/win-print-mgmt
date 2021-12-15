@@ -41,7 +41,8 @@
                   Queue
                 </a>
                 <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                  {{#if user.isAdmin}}<li><a class="dropdown-item" href="/create-print-queue">Create</a></li>{{/if}}
+                  {{#if user.isAdmin}}<li><a class="dropdown-item" href="/create-print-queue">Create</a></li>
+                  <li><a class="dropdown-item" href="/bulk-create-print-queue">Bulk Create</a></li>{{/if}}
                   <li><a class="dropdown-item" href="/manage-queues">Manage</a></li>
                   <!--<li><hr class="dropdown-divider"></li>
                   <li><a class="dropdown-item" href="#">Something else here</a></li>-->

@@ -7,6 +7,9 @@ const msftconfig = require("../msftconfig");
 const config = require('../config');
 const auth = require('basic-auth');
 const db = require('../db');
+const formidable = require('formidable')
+const fs = require('fs');
+const csv = require('csv-parse');
 
 /*router.use(function(req, res, next) {
   res.setHeader("Referrer-Policy", "no-referrer-when-downgrade");
@@ -25,6 +28,62 @@ router.get('/', ensureAuthenticated, function(req, res, next) {
   });
 });
 
+router.get('/template.csv', ensureAuthenticated, function(req, res) {
+  res.setHeader('Content-disposition', 'attachment; filename=template.csv');
+  res.set('Content-Type', 'text/csv');
+  res.status(200).send('Name,Trays,Driver,IP,Port,Shared,Location,Comment\r\nELP-SURG3-OR01,0 1 2,Microsoft XPS Document Writer v4,10.254.13.87,10.254.13.87,FALSE,Lyas Test Location,ZTC GX420d');
+});
+
+router.post('/upload/csv', ensureAuthenticated, function(req, res, next) {
+  //console.log(req.headers);
+  const form = new formidable.IncomingForm()
+  form.multiples = false;
+  form.maxFileSize = 50 * 1024 * 1024;
+  //console.log(form);
+  form.parse(req, async (err, fields, files) => {
+    if (err) {
+      console.log("Error parsing the files");
+      return res.status(400).json({
+        status: "Fail",
+        message: "There was an error parsing the files",
+        error: err,
+      });
+    } else {
+      //console.log(fields);
+      //console.log(files.file.filepath);
+      const results = [];
+      let parse = csv.parse({
+        auto_parse: true, // Ensures that numeric values remain numeric
+        columns: true,
+        delimiter: ',',
+        trim: true,
+        relax: true,
+        bom: true
+      });
+      let uid = 0;
+      fs.createReadStream(files.file.filepath)
+        .pipe(parse)
+        .on('data', function(data) {
+          data.Success = 0;
+          data.Error = 0;
+          data.uid = 'uid' + uid;
+          data.Trays = data.Trays.split(' ');
+          uid++; 
+          results.push(data)
+        })
+        .on('end', () => {
+          fs.unlink(files.file.filepath, function() {});
+          //console.log(results);
+          res.json(results);
+          // [
+          //   { NAME: 'Daffy Duck', AGE: '24' },
+          //   { NAME: 'Bugs Bunny', AGE: '22' }
+          // ]
+        });
+    }
+  });
+});
+
 router.get('/create-print-queue', ensureAuthenticated, function(req, res, next) {
   server.inventory.list({}, function(err, inventory) {
     if(err) {
@@ -36,6 +95,21 @@ router.get('/create-print-queue', ensureAuthenticated, function(req, res, next) 
       }
       sorted.sort();
       res.render('create-print-queue', { title: 'qManager', inventory: sorted, user: req.user, config: {dhcpenabled: config.ENABLEDHCP }});
+    }
+  });
+});
+
+router.get('/bulk-create-print-queue', ensureAuthenticated, function(req, res, next) {
+  server.inventory.list({}, function(err, inventory) {
+    if(err) {
+      res.render('error', { message: err });
+    } else {
+      let sorted = [];
+      for(let i = 0; i <= inventory.length - 1; i++) {
+        sorted.push(inventory[i].name);
+      }
+      sorted.sort();
+      res.render('bulk-create-print-queue', { title: 'qManager', inventory: sorted, user: req.user, config: {dhcpenabled: config.ENABLEDHCP }});
     }
   });
 });
