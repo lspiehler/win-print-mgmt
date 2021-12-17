@@ -237,13 +237,7 @@
 
         if(DHCPIntegration()) {
             var dhcp = new dhcpmgmt();
-            dhcp.search({ip: properties.port.value}, function(err, dchpipresults) {
-                if(err) {
-                    console.log('DHCP lease search failed: ' + err);
-                } else {
-                    console.log(dchpipresults);
-                }
-            });
+            dhcp.search({ip: properties.port.value});
         }
 
         initLog('Processing port creation...', request.servers.length * request.objects.length);

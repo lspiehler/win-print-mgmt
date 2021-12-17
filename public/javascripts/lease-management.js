@@ -19,6 +19,18 @@ var dhcpmgmt = function(params) {
         return log;
     }
 
+    this.getLeases = function() {
+        if(complete) {
+            let ips = {};
+            for(let i = 0; i <= leases.length - 1; i++) {
+                ips[leases[i].IPAddress] = leases[i];
+            }
+            return ips;
+        } else {
+            return false;
+        }
+    }
+
     var reserveLease = function(params, callback) {
         //complete = 'searching';
         let options = {
@@ -60,7 +72,7 @@ var dhcpmgmt = function(params) {
             "search": {
                 "comparison": "AND",
                 "properties": {
-                    "ClientId": params.ClientId
+                    "ClientId": [params.ClientId]
                 }
             },
             "updatecache": false
@@ -112,13 +124,13 @@ var dhcpmgmt = function(params) {
             } else {
                 let servers = [];
                 let reservations = [];
-                for (let i = 0; i < resp.body.length; i++) {
-                    //console.log(resp.body[i].IPAddress[0]);
+                for (let i = 0; i < resp.body.data.length; i++) {
+                    //console.log(resp.body.data[i].IPAddress[0]);
                     //console.log(params.IPAddress[0]);
-                    //console.log(resp.body[i].AddressState);
-                    if(resp.body[i].IPAddress[0] != params.IPAddress[0] && resp.body[i].AddressState[0].indexOf('eservation') >= 0) {
-                        servers.push(resp.body[i].Servers[0]);
-                        reservations.push(resp.body[i]);
+                    //console.log(resp.body.data[i].AddressState);
+                    if(resp.body.data[i].IPAddress[0] != params.IPAddress[0] && resp.body.data[i].AddressState[0].indexOf('eservation') >= 0) {
+                        servers.push(resp.body.data[i].Servers[0]);
+                        reservations.push(resp.body.data[i]);
                     }
                 }
                 if(servers.length <= 0) {
@@ -143,7 +155,51 @@ var dhcpmgmt = function(params) {
         });
     }
 
-    this.search = function(params, callback) {
+    this.searchBulk = function(params) {
+        //complete = 'searching';
+        let options = {
+            path: '/api/dhcp/lease/list',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+    
+        let body = {
+            "servers": "all",
+            "combine": true,
+            "exactMatch": true,
+            "index": "IPAddress",
+            "search": {
+                "comparison": "AND",
+                "properties": {
+                    "IPAddress": params.ports
+                }
+            },
+            "updatecache": true
+        }
+    
+        httpRequest({options: options, body: body}, function(err, resp) {
+            if(err) {
+                complete = true;
+                log = ['DHCP lease search for bulk leases failed: ' + err]
+                if(completedcallback) {
+                    completedcallback(err, log);
+                    return;
+                }
+            } else {
+                complete = true;
+                leases = resp.body.data
+                log = ['DHCP lease search for bulk leases completed']
+                if(completedcallback) {
+                    completedcallback(err, log);
+                    return;
+                }
+            }
+        });
+    }
+
+    this.search = function(params) {
         //complete = 'searching';
         let options = {
             path: '/api/dhcp/lease/list',
@@ -156,10 +212,12 @@ var dhcpmgmt = function(params) {
         let body = {
             "servers": "all",
             "combine": false,
+            "exactMatch": true,
+            "index": "ClientId",
             "search": {
                 "comparison": "AND",
                 "properties": {
-                    "IPAddress": "\"" + params.ip + "\""
+                    "IPAddress": [params.ip]
                 }
             },
             "updatecache": true
@@ -175,21 +233,21 @@ var dhcpmgmt = function(params) {
                 }
             } else {
                 let servers = [];
-                //console.log(resp.body);
-                for (let i = 0; i < resp.body.length; i++) {
-                    servers.push(resp.body[i].Servers[0]);
-                    leases.push(resp.body[i]);
+                //console.log(resp.body.data);
+                for (let i = 0; i < resp.body.data.length; i++) {
+                    servers.push(resp.body.data[i].Servers[0]);
+                    leases.push(resp.body.data[i]);
                 }
                 if(servers.length <= 0) {
                     servers.push('all');
                 }
-                let msg = ['DHCP lease search for ' + params.ip + ' returned ' + resp.body.length + ' <a target="_blank" href="/manage-leases?servers=' + servers.join(',') + '&property=IPAddress&dedupe=false&value=' + params.ip + '">result(s)</a>']
+                let msg = ['DHCP lease search for ' + params.ip + ' returned ' + resp.body.data.length + ' <a target="_blank" href="/manage-leases?servers=' + servers.join(',') + '&property=IPAddress&dedupe=false&value=%22' + params.ip + '%22">result(s)</a>']
                 log = [msg];
-                results = resp.body;
+                results = resp.body.data;
                 if(progresscallback) {
                     progresscallback(msg);
                 }
-                if(resp.body.length == 0) {
+                if(resp.body.data.length == 0) {
                     complete = true;
                     let msg = 'No leases were found to convert to reservations. Further development may add the ability to create reservations from scratch in the future.';
                     log.push(msg);
@@ -200,12 +258,12 @@ var dhcpmgmt = function(params) {
                         completedcallback(false, log);
                         return;
                     }
-                } else if(resp.body.length == 1) {
-                    if(resp.body[0].AddressState[0].indexOf('eservation') < 0) {
+                } else if(resp.body.data.length == 1) {
+                    if(resp.body.data[0].AddressState[0].indexOf('eservation') < 0) {
                         if(progresscallback) {
                             progresscallback('Converting lease to reservation and searching for stale reservations...');
                         }
-                        takeAction(resp.body[0], function(err, warnings) {
+                        takeAction(resp.body.data[0], function(err, warnings) {
                             complete = true;
                             if(err) {
                                 if(completedcallback) {
@@ -225,7 +283,7 @@ var dhcpmgmt = function(params) {
                         //convert lease
                     } else {
                         complete = true;
-                        let msg = 'A reservation for the lease already exists. Please make sure ' + resp.body[0].ClientId + ' matches the printer\'s MAC address';
+                        let msg = 'A reservation for the lease already exists. Please make sure ' + resp.body.data[0].ClientId + ' matches the printer\'s MAC address';
                         log.push(msg);
                         if(progresscallback) {
                             progresscallback(msg);
@@ -235,7 +293,7 @@ var dhcpmgmt = function(params) {
                         if(progresscallback) {
                             progresscallback(msg);
                         }
-                        searchStale(resp.body[0], function(err, reserv) {
+                        searchStale(resp.body.data[0], function(err, reserv) {
                             if(err) {
                                 let msg = 'Search for stale reservations failed: ' + err;
                                 log.push(msg);
@@ -246,10 +304,10 @@ var dhcpmgmt = function(params) {
                                 let servers = [];
                                 let reservations = [];
                                 for (let i = 0; i < reserv.body.length; i++) {
-                                    //console.log(resp.body[i].IPAddress[0]);
+                                    //console.log(resp.body.data[i].IPAddress[0]);
                                     //console.log(params.IPAddress[0]);
-                                    //console.log(resp.body[i].AddressState);
-                                    if(reserv.body[i].IPAddress[0] != resp.body[0].IPAddress[0] && reserv.body[i].AddressState[0].indexOf('eservation') >= 0) {
+                                    //console.log(resp.body.data[i].AddressState);
+                                    if(reserv.body[i].IPAddress[0] != resp.body.data[0].IPAddress[0] && reserv.body[i].AddressState[0].indexOf('eservation') >= 0) {
                                         servers.push(reserv.body[i].Servers[0]);
                                         reservations.push(reserv.body[i]);
                                     }
@@ -257,7 +315,7 @@ var dhcpmgmt = function(params) {
                                 if(servers.length <= 0) {
                                     servers.push('all');
                                 }
-                                let msg = ['DHCP stale lease search for ' + resp.body[0].ClientId + ' returned ' + reservations.length + ' <a target="_blank" href="/manage-leases?servers=' + servers.join(',') + '&property=ClientId&dedupe=false&value=' + resp.body[0].ClientId + '">result(s)</a>']
+                                let msg = ['DHCP stale lease search for ' + resp.body.data[0].ClientId + ' returned ' + reservations.length + ' <a target="_blank" href="/manage-leases?servers=' + servers.join(',') + '&property=ClientId&dedupe=false&value=' + resp.body.data[0].ClientId + '">result(s)</a>']
                                 if(reservations.length > 0) {
                                     alert('Please review the discovered stale leases and consider deleting them!');
                                 }
@@ -284,7 +342,7 @@ var dhcpmgmt = function(params) {
                         return;
                     }
                 }
-                //callback(false, resp.body);
+                //callback(false, resp.body.data);
             }
         });
     }

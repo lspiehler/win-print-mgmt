@@ -31,7 +31,11 @@ router.get('/', ensureAuthenticated, function(req, res, next) {
 router.get('/template.csv', ensureAuthenticated, function(req, res) {
   res.setHeader('Content-disposition', 'attachment; filename=template.csv');
   res.set('Content-Type', 'text/csv');
-  res.status(200).send('Name,Trays,Driver,IP,Port,Shared,Location,Comment\r\nELP-SURG3-OR01,0 1 2,Microsoft XPS Document Writer v4,10.254.13.87,10.254.13.87,FALSE,Lyas Test Location,ZTC GX420d');
+  res.status(200).send(`Name,Trays,Driver,Port,Shared,Location,Comment
+TempTest01,0,Canon Generic PCL6 Driver,192.168.1.5,FALSE,Test Location,Test Comment
+TempTest02,0 1,Canon Generic PCL6 Driver,192.168.1.6,TRUE,Test Location,Test Comment
+TempTest03,0 1 2 3,Canon Generic PCL6 Driver,192.168.1.7,FALSE,Test Location,Test Comment
+`);
 });
 
 router.post('/upload/csv', ensureAuthenticated, function(req, res, next) {
@@ -66,19 +70,41 @@ router.post('/upload/csv', ensureAuthenticated, function(req, res, next) {
         .on('data', function(data) {
           data.Success = 0;
           data.Error = 0;
-          data.uid = 'uid' + uid;
+          data.uid = 'respid-' + uid;
           data.Trays = data.Trays.split(' ');
+          data.Tasks = '-';
           uid++; 
           results.push(data)
         })
         .on('end', () => {
           fs.unlink(files.file.filepath, function() {});
           //console.log(results);
-          res.json(results);
+          res.json({
+            status: 200,
+            headers: [],
+            body: {
+                result: 'success',
+                message: false,
+                data: results
+            }
+          });
           // [
           //   { NAME: 'Daffy Duck', AGE: '24' },
           //   { NAME: 'Bugs Bunny', AGE: '22' }
           // ]
+        })
+        .on('error', (error) => {
+          fs.unlink(files.file.filepath, function() {});
+          //console.log(error.toString());
+          res.json({
+            status: 500,
+            headers: [],
+            body: {
+                result: 'error',
+                message: error.toString(),
+                data: false
+            }
+          });
         });
     }
   });
@@ -149,7 +175,7 @@ router.get('/manage-leases', ensureAuthenticated, function(req, res, next) {
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('manage-leases', { title: 'qManager', inventory: sorted, user: req.user, queryparms: JSON.stringify(req.query) });
+      res.render('manage-leases', { title: 'qManager', inventory: sorted, user: req.user, queryparms: JSON.stringify(req.query), config: {dhcpenabled: config.ENABLEDHCP } });
     }
   });
 });

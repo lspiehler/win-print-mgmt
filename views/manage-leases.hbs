@@ -104,12 +104,20 @@
         $('#overlay').fadeIn();
         let search = false;
         //console.log(getSelectedOptions(properties.searchprop)[0]);
+        let exactMatch = false;
+        let index = false;
         if(properties.searchvalue.value.trim() != '') {
             search = {
                 comparison: 'AND',
                 properties: {}
             }
-            search.properties[getSelectedOptions(properties.searchprop)[0]] = properties.searchvalue.value.trim();
+            let searchvalue = properties.searchvalue.value.trim();
+            if(searchvalue.charAt(0) == '"' && searchvalue.charAt(searchvalue.length - 1) == '"') {
+                searchvalue = searchvalue.split('"')[1];
+                exactMatch = true;
+                //index = getSelectedOptions(properties.searchprop)[0];
+            }
+            search.properties[getSelectedOptions(properties.searchprop)[0]] = [searchvalue];
         }
 
         let updatecache = false;
@@ -120,6 +128,7 @@
 
         let request = {
             servers: servers,
+            exactMatch: exactMatch,
             combine: properties.dedupequeues.checked,
             search: search,
             updatecache: properties.updatecache.checked
@@ -142,10 +151,10 @@
                 if ( $.fn.DataTable.isDataTable( '#example' ) ) {
                     //$('#example').DataTable().clear();
                     table.destroy();
-                    initDatatable(printers.body);
+                    initDatatable(printers.body.data);
                 } else {
                     $(document).ready(function() {
-                        initDatatable(printers.body);
+                        initDatatable(printers.body.data);
                     } );
                 }
                 $('#overlay').fadeOut();

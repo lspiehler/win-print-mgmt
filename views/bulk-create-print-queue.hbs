@@ -8,7 +8,7 @@
     <tr>
         <td>Servers:</td>
         <td>
-            <select class="form-control" id="servers" multiple>
+            <select onchange="updateTasks(this)" class="form-control" id="servers" multiple>
                 {{#each inventory}}
                     <option value="{{this}}">{{this}}</option>
                 {{/each}}
@@ -28,17 +28,21 @@
     Dropzone.autoDiscover = false;
 
     let myDropzone = new Dropzone(".dropzone");
-    myDropzone.on("addedfile", file => {
+    /*myDropzone.on("addedfile", file => {
         console.log(`File added: ${file.name}`);
-        myDropzone.element.hidden = true;
-        document.getElementById('csvtemplate').style.display = 'none';
-        document.getElementById('serverstable').style.display = 'block';
-        console.log(myDropzone.element);
-    });
+    });*/
     
     myDropzone.on("success", function(file, response) {
-        console.log(response);
-        initDatatable(response);
+        //console.log(response);
+        if(response.body.result=="success") {
+            myDropzone.element.hidden = true;
+            document.getElementById('csvtemplate').style.display = 'none';
+            document.getElementById('serverstable').style.display = 'block';
+            //console.log(myDropzone.element);
+            initDatatable(response.body.data);
+        } else {
+            alert(response.body.message);
+        }
     });
 
     function appendActivityLog(line) {
@@ -47,6 +51,7 @@
         p.className = 'log';
         p.innerHTML = line;
         log.appendChild(p);
+        log.scrollTop = log.scrollHeight;
     }
 
     var createMissingPorts = function(params, callback) {
@@ -104,6 +109,32 @@
         });
     }
 
+    function DHCPIntegration() {
+        /*if(dhcpenabled) {
+            let dhcpintegration = document.getElementById('dhcpintegration');
+            if(dhcpintegration.checked) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }*/
+        return true;
+    }
+
+    var updateTasks = function(elem) {
+        let servers = getSelectedOptions(elem);
+
+        var rows_selected = table.column(0).checkboxes.selected();
+        $.each(rows_selected, function(index, rowId) {
+            let row = table.row('#' + rowId);
+            let queue = row.data();
+            let cell = table.cell(row.index(), 'Tasks:name');
+            cell.data(servers.length * queue.Trays.length).draw(false);
+        });
+    }
+
     function createQueues() {
         let servers = getSelectedOptions(document.getElementById('servers'));
         
@@ -119,7 +150,7 @@
                     appendActivityLog('Failed getting driver templates from the server: ' + err);
                     return false;
                 } else {
-                    console.log(templates);
+                    //console.log(templates);
                     let csvports = [];
                     let csvdrivers = {};
                     var rows_selected = table.column(0).checkboxes.selected();
@@ -129,6 +160,7 @@
                     }
                     $.each(rows_selected, function(index, rowId){
                         let queue = table.row('#' + rowId).data();
+                        //console.log(rowId);
                         for(let i = 0; i <= queue.Trays.length - 1; i++) {
                             let name;
                             if(queue.Trays[i]=='0') {
@@ -142,17 +174,19 @@
                             }
                             let object = {
                                 name: name,
-                                portname: queue.IP,
+                                portname: queue.Port,
                                 comment: queue.Comment,
                                 location: queue.Location,
                                 shared: shared,
-                                drivername: queue.Driver
+                                drivername: queue.Driver,
+                                rowId: rowId
                             }
                             if(templates.hasOwnProperty(queue.Driver)) {
+                                //console.log(templates);
                                 object['config'] = [
                                     {
                                         type: 8,
-                                        options: drivertemplate[parseInt(queue.Trays[i])].options
+                                        options: templates[queue.Driver][parseInt(queue.Trays[i])].options
                                     }
                                 ]
                             } else {
@@ -160,11 +194,17 @@
                             }
                             request.objects.push(object);
                         }
-                        csvports.push(queue.IP);
+                        if(csvports.indexOf(queue.Port) < 0) {
+                            csvports.push(queue.Port);
+                        }
                         if(!csvdrivers.hasOwnProperty(queue.Driver)) {
                             csvdrivers[queue.Driver] = true;
                         }
                     });
+                    if(DHCPIntegration()) {
+                        var dhcp = new dhcpmgmt();
+                        dhcp.searchBulk({ports: csvports});
+                    }
                     //console.log(request);
                     appendActivityLog('Retrieving a valid list of drivers from servers');
                     getDrivers(servers, function(err, drivers) {
@@ -187,6 +227,7 @@
                                     } else {
                                         appendActivityLog('All required ports already exist');
                                     }
+                                    appendActivityLog('Queueing queue creation requests');
                                     let jobmanager = new jobManager({maxqueue: 4});
                                     //let printerjobs = printerjob.createJobQueue(request);
                                     //console.log(printerjobs);
@@ -194,12 +235,49 @@
                                     function(e) {
                                         appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message);
                                         //updateProgress();
+                                        let cell;
+                                        if(e.response.body.result == 'success') {
+                                            cell = table.cell(table.row('#' + e.request.body.rowId).index(), 'Success:name');
+                                            table.cell(table.row('#' + e.request.body.rowId).index(), 'Success:name').invalidate().draw(false);
+                                        } else {
+                                            cell = table.cell(table.row('#' + e.request.body.rowId).index(), 'Error:name');
+                                        }
+                                        cell.data( cell.data() + 1 ).draw(false);
                                     },
                                     function(err, resp) {
                                         if(err) {
                                             console.log(err);
                                         } else {
                                             appendActivityLog('Queue creation complete!');
+                                            if(DHCPIntegration()) {
+                                                console.log(dhcp.complete());
+                                                if(!dhcp.complete()) {
+                                                    let log = dhcp.log();
+                                                    //console.log(log);
+                                                    for(let i = 0; i < log.length; i++) {
+                                                        appendActivityLog(log[i]);
+                                                    }
+                                                    dhcp.monitorProgress(function(msg) {
+                                                        appendActivityLog(msg);
+                                                    }, function(err, msgs) {
+                                                        if(err) {
+                                                            appendActivityLog(err);
+                                                        } else {
+                                                            //all logs should have been displayed in real-time
+                                                            reserveBulkLeases({leases: dhcp.getLeases(), ports: csvports}, function(err, result) {
+                                                                appendActivityLog(result);
+                                                            });
+                                                        }
+                                                        //let closeprogress = document.getElementById('closeprogress');
+                                                        //closeprogress.style.display = 'inline';
+                                                        //return;
+                                                    })
+                                                } else {
+                                                    reserveBulkLeases({leases: dhcp.getLeases(), ports: csvports}, function(err, result) {
+                                                        appendActivityLog(result);
+                                                    });
+                                                }
+                                            }
                                         }
                                     });
                                 });
@@ -209,6 +287,81 @@
                 }
             });
         }
+    }
+
+    var processLeaseConversions = function(requests, index, callback) {
+        if(!index) {
+            index = 0;
+        }
+        if(index < requests.length) {
+            let jobmanager = new jobManager({maxqueue: 1});
+            jobmanager.processJobs(requests[index], '/api/dhcp/lease/reserve',
+            //portjob.processJobs(portjobs,
+            function(e) {
+                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.ip + ' (' + e.request.body.clientid + ') - ' + e.response.body.message);
+                //updateProgress()
+                //console.log(e);
+            },
+            function(err, resp) {
+               processLeaseConversions(requests, index + 1, callback); 
+            });
+        } else {
+            callback(false, 'DHCP lease to reservation conversion complete');
+        }
+    }
+
+    var reserveBulkLeases = function(params, callback) {
+        let requests = getLeaseRequests(params);
+        let reqarr = [];
+        let keys = Object.keys(requests);
+        for(let i = 0; i <= keys.length - 1; i++) {
+            reqarr.push(requests[keys[i]]);
+        }
+        if(reqarr.length > 0) {
+            appendActivityLog('Queueing DHCP lease to reservation conversions');
+            processLeaseConversions(reqarr, 0, function(err, result) {
+                callback(err, result);
+            });
+        } else {
+            callback(false, 'No leases were eligible for conversion to reservation');
+        }
+    }
+
+    var getLeaseRequests = function(params) {
+        //console.log(params);
+        let requests = {};
+        for(let i = 0; i <= params.ports.length - 1; i++) {
+            if(params.leases.hasOwnProperty(params.ports[i])) {
+                if(params.leases[params.ports[i]].ClientId.length == 1) {
+                    if(params.leases[params.ports[i]].AddressState[0].indexOf('eservation') < 0) {
+                        if(requests.hasOwnProperty(params.leases[params.ports[i]].Servers[0])) {
+                            requests[params.leases[params.ports[i]].Servers[0]].objects.push({
+                                clientid: params.leases[params.ports[i]].ClientId[0],
+                                ip: params.leases[params.ports[i]].IPAddress,
+                                scopeid: params.leases[params.ports[i]].ScopeId[0]
+                            });
+                        } else {
+                            let request = {
+                                servers: [params.leases[params.ports[i]].Servers[0]],
+                                objects: [{
+                                    clientid: params.leases[params.ports[i]].ClientId[0],
+                                    ip: params.leases[params.ports[i]].IPAddress,
+                                    scopeid: params.leases[params.ports[i]].ScopeId[0]
+                                }]
+                            }
+                            requests[params.leases[params.ports[i]].Servers[0]] = request;
+                        }
+                    } else {
+                        appendActivityLog('Multiple reservations found for ' + params.ports[i]);
+                    }
+                } else {
+                    appendActivityLog('Multiple leases found for ' + params.ports[i]);
+                }
+            } else {
+                appendActivityLog('No lease found for ' + params.ports[i]);
+            }
+        }
+        return requests;
     }
 
     function initDatatable(data) {
@@ -276,11 +429,6 @@
                     name: "Driver"
                 },
                 { 
-                    data: "IP",
-                    title: "IP",
-                    name: "IP"
-                },
-                { 
                     data: "Port",
                     title: "Port",
                     name: "Port"
@@ -299,6 +447,11 @@
                     data: "Comment",
                     title: "Comment",
                     name: "Comment"
+                },
+                { 
+                    data: "Tasks",
+                    title: "Tasks",
+                    name: "Tasks"
                 },
                 { 
                     data: "Success",

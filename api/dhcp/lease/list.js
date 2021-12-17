@@ -18,7 +18,11 @@ module.exports = function(params, callback) {
             let result = {
                 status: 200,
                 headers: [],
-                body: resp
+                body: {
+                    result: 'success',
+                    message: false,
+                    data: resp
+                }
             }
             callback(false, result);
         }
