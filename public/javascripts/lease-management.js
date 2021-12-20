@@ -49,7 +49,7 @@ var dhcpmgmt = function(params) {
     
         httpRequest({options: options, body: body}, function(err, resp) {
             if(err) {
-                callback(err, false);
+                callback(err, resp);
             } else {
                 callback(false, resp);
             }
@@ -93,18 +93,12 @@ var dhcpmgmt = function(params) {
         var warnings = [];
         //completions++;
         reserveLease(params, function(err, resp) {
-            if(err) {
-                let msg = 'Converting lease to reservation failed: ' + err;
-                log.push(msg);
-                if(progresscallback) {
-                    progresscallback(msg);
-                }
-            } else {
-                let msg = 'Lease successfully converted to reservation';
-                log.push(msg);
-                if(progresscallback) {
-                    progresscallback(msg);
-                }
+            //console.log(resp);
+            //console.log(params);
+            let msg = resp.body.result + ' - ' + params.Servers[0] + ' - ' + params.IPAddress[0] + ' ('+ params.ClientId +') - ' + resp.body.message;
+            log.push(msg);
+            if(progresscallback) {
+                progresscallback(msg);
             }
             completions++;
             if(completions>=reqcomp) {
