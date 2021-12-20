@@ -11,6 +11,21 @@ const formidable = require('formidable')
 const fs = require('fs');
 const csv = require('csv-parse');
 
+var themes = {
+  dark: {
+    bodyClass: 'bg-dark text-light',
+    navClass: 'navbar-light bg-secondary',
+    modalClass: 'bg-dark'
+  },
+  light: {
+    bodyClass: '',
+    navClass: 'navbar-dark bg-dark',
+    modalClass: 'bg-dark'
+  }
+}
+
+ const defaulttheme = 'light';
+
 /*router.use(function(req, res, next) {
   res.setHeader("Referrer-Policy", "no-referrer-when-downgrade");
   next();
@@ -18,12 +33,19 @@ const csv = require('csv-parse');
 
 /* GET home page. */
 router.get('/', ensureAuthenticated, function(req, res, next) {
-  //console.log(req.user);
+  let theme = defaulttheme;
+  let dark = false;
+  if(config.MSFTAUTH) {
+    if(req.user.hasOwnProperty('theme')) {
+      theme = req.user['theme']
+    }
+  }
+  if(theme == 'dark') dark = true;
   server.inventory.list({}, function(err, inventory) {
     if(err) {
       res.render('error', { message: err });
     } else {
-      res.render('index', { title: 'qManager', inventory: inventory, user: req.user, config: {dhcpenabled: config.ENABLEDHCP }});
+      res.render('index', { title: 'qManager', inventory: inventory, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP }});
     }
   });
 });
@@ -111,6 +133,14 @@ router.post('/upload/csv', ensureAuthenticated, function(req, res, next) {
 });
 
 router.get('/create-print-queue', ensureAuthenticated, function(req, res, next) {
+  let theme = defaulttheme;
+  let dark = false;
+  if(config.MSFTAUTH) {
+    if(req.user.hasOwnProperty('theme')) {
+      theme = req.user['theme']
+    }
+  }
+  if(theme == 'dark') dark = true;
   server.inventory.list({}, function(err, inventory) {
     if(err) {
       res.render('error', { message: err });
@@ -120,12 +150,20 @@ router.get('/create-print-queue', ensureAuthenticated, function(req, res, next) 
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('create-print-queue', { title: 'qManager', inventory: sorted, user: req.user, config: {dhcpenabled: config.ENABLEDHCP }});
+      res.render('create-print-queue', { title: 'qManager', inventory: sorted, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP }});
     }
   });
 });
 
 router.get('/bulk-create-print-queue', ensureAuthenticated, function(req, res, next) {
+  let theme = defaulttheme;
+  let dark = false;
+  if(config.MSFTAUTH) {
+    if(req.user.hasOwnProperty('theme')) {
+      theme = req.user['theme']
+    }
+  }
+  if(theme == 'dark') dark = true;
   server.inventory.list({}, function(err, inventory) {
     if(err) {
       res.render('error', { message: err });
@@ -135,7 +173,7 @@ router.get('/bulk-create-print-queue', ensureAuthenticated, function(req, res, n
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('bulk-create-print-queue', { title: 'qManager', inventory: sorted, user: req.user, config: {dhcpenabled: config.ENABLEDHCP }});
+      res.render('bulk-create-print-queue', { title: 'qManager', inventory: sorted, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP }});
     }
   });
 });
@@ -149,6 +187,14 @@ router.get('/auth', ensureAuthenticated, function(req, res, next) {
 });
 
 router.get('/manage-queues', ensureAuthenticated, function(req, res, next) {
+  let theme = defaulttheme;
+  let dark = false;
+  if(config.MSFTAUTH) {
+    if(req.user.hasOwnProperty('theme')) {
+      theme = req.user['theme']
+    }
+  }
+  if(theme == 'dark') dark = true;
   //console.log(req.url)
   server.inventory.list({}, function(err, inventory) {
     if(err) {
@@ -159,13 +205,21 @@ router.get('/manage-queues', ensureAuthenticated, function(req, res, next) {
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('manage-queues', { title: 'qManager', inventory: sorted, user: req.user, config: {dhcpenabled: config.ENABLEDHCP }});
+      res.render('manage-queues', { title: 'qManager', inventory: sorted, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP }});
     }
   });
 });
 
 router.get('/manage-leases', ensureAuthenticated, function(req, res, next) {
   //console.log(req.query)
+  let theme = defaulttheme;
+  let dark = false;
+  if(config.MSFTAUTH) {
+    if(req.user.hasOwnProperty('theme')) {
+      theme = req.user['theme']
+    }
+  }
+  if(theme == 'dark') dark = true;
   dhcpinventory.list({}, function(err, inventory) {
     if(err) {
       res.render('error', { message: err });
@@ -175,7 +229,7 @@ router.get('/manage-leases', ensureAuthenticated, function(req, res, next) {
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('manage-leases', { title: 'qManager', inventory: sorted, user: req.user, queryparms: JSON.stringify(req.query), config: {dhcpenabled: config.ENABLEDHCP } });
+      res.render('manage-leases', { title: 'qManager', inventory: sorted, user: req.user, queryparms: JSON.stringify(req.query), theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP } });
     }
   });
 });
@@ -322,6 +376,19 @@ router.get('/logout', function(req, res){
       res.status(401).render('logout', { layout: null });
     } else {
       res.render('logout', { layout: null });
+    }
+  });
+});
+
+router.post('/theme', function(req, res){
+  db.users.setDarkMode(req.user.oid, req.body.dark);
+  res.json({
+    status: 200,
+    headers: [],
+    body: {
+        result: 'success',
+        message: 'Dark mode set to ' + JSON.stringify(req.body),
+        data: false
     }
   });
 });

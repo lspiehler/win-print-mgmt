@@ -22,5 +22,14 @@ module.exports = {
       delete users[oid];
     }
     return fn(null, null);
+  },
+  setDarkMode: function(oid, dark) {
+    if(users.hasOwnProperty(oid)) {
+      if(dark) {
+        users[oid]['theme'] = 'dark';
+      } else {
+        users[oid]['theme'] = 'light';
+      }
+    }
   }
 }

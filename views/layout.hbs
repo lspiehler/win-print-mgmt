@@ -23,11 +23,10 @@
     <link href="/css/jquery-datatables-checkboxes/dataTables.checkboxes.css" rel="stylesheet">
     <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" media="screen" />
   </head>
-  <!--<body class="bg-dark text-light">-->
-  <body>
+  <body class="{{theme.class.bodyClass}}">
     <header>
       <!--<nav class="navbar navbar-expand-md navbar-light bg-secondary fixed-top">-->
-      <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+      <nav id="navbar" class="navbar navbar-expand-md {{theme.class.navClass}} fixed-top">
         <div class="container-fluid">
           <a class="navbar-brand" href="/">qManager</a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,10 +60,56 @@
                 </ul>
               </li>{{/if}}
             </ul>
+            {{#if config.msftauth}}<div class="form-check form-switch" style="margin-right: 50px;">
+              <input id="theme" onchange="changeTheme()" class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" {{#if theme.dark}}checked{{/if}}>
+              <label id="darklabel" class="form-check-label {{#if theme.dark}}{{else}}text-light{{/if}}" for="flexSwitchCheckDefault">Dark</label>
+            </div>{{/if}}
             <span style="color: #ffffff;">Welcome {{user.displayName}}!</span>&nbsp;&nbsp;<a class="btn btn-outline-info" href="/logout">Logout</a>
           </div>
         </div>
       </nav>
+      <script>
+        function changeTheme(elem) {
+          let theme = document.getElementById('theme');
+
+          let options = {
+              path: '/theme',
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              }
+          }
+      
+          let body = {
+              "dark": theme.checked
+          }
+
+          httpRequest({options: options, body: body}, function(err, resp) {
+            if(err) {
+              console.log(err);
+            } else {
+              //console.log(resp);
+              if(theme.checked) {
+                document.body.className = 'bg-dark text-light';
+                document.getElementById('navbar').className = 'navbar navbar-expand-md navbar-light bg-secondary fixed-top';
+                document.getElementById('darklabel').className = 'form-check-label';
+                let modals = document.getElementsByClassName('modal-content');
+                for(let i = 0; i <= modals.length - 1; i++) {
+                  modals[i].className = 'modal-content bg-dark';
+                }
+              } else {
+                document.body.className = '';
+                document.getElementById('navbar').className = 'navbar navbar-expand-md navbar-dark bg-dark fixed-top';
+                document.getElementById('darklabel').className = 'form-check-label text-light';
+                let modals = document.getElementsByClassName('modal-content');
+                for(let i = 0; i <= modals.length - 1; i++) {
+                  modals[i].className = 'modal-content';
+                }
+              }
+            }
+        });
+        }
+      </script>
     </header>
     <p>&nbsp;</p>
     {{{ body }}}
