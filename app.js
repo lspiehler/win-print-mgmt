@@ -100,7 +100,15 @@ if(config.MSFTAUTH) {
   app.use(passport.session());
 }
 
-app.use(logger('dev'));
+app.use(logger('common', {
+  skip: function(req, res) {
+    if(req.url=='/server/inventory/ping' || req.url=='/dhcp/inventory/ping') {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
