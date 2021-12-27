@@ -64,7 +64,7 @@
               <input id="theme" onchange="changeTheme()" class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" {{#if theme.dark}}checked{{/if}}>
               <label id="darklabel" class="form-check-label {{#if theme.dark}}{{else}}text-light{{/if}}" for="flexSwitchCheckDefault">Dark</label>
             </div>{{/if}}
-            <span style="color: #ffffff;">Welcome {{user.displayName}}!</span>&nbsp;&nbsp;<a class="btn btn-outline-info" href="/logout">Logout</a>
+            {{#if user}}<span style="color: #ffffff;">Welcome {{user.displayName}}!</span>&nbsp;&nbsp;<a class="btn btn-outline-info" href="/logout">Logout</a>{{/if}}
           </div>
         </div>
       </nav>

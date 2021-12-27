@@ -8,6 +8,7 @@
         <tr><td>Force Cache Update <input type="checkbox" id="updatecache" /></td></tr>
         <tr><td>Combine Duplicate Queues <input type="checkbox" checked id="dedupequeues" /></td></tr>
         {{#if config.dhcpenabled}}<tr><td>Enable DHCP <input type="checkbox" checked id="dhcpintegration" /></td></tr>{{/if}}
+        {{#if config.dhcpenabled}}<tr><td>Show Leases <input type="checkbox" id="showleases" /></td></tr>{{/if}}
     </table>
     <select id="searchprop">
         <option value="Name">Queue Name</option>
@@ -86,6 +87,19 @@
         if(dhcpenabled) {
             let dhcpintegration = document.getElementById('dhcpintegration');
             if(dhcpintegration.checked) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    function showLeases() {
+        if(dhcpenabled) {
+            let showleases = document.getElementById('showleases');
+            if(showleases.checked) {
                 return true;
             } else {
                 return false;
@@ -827,7 +841,8 @@
             servers: servers,
             combine: properties.dedupequeues.checked,
             search: search,
-            updatecache: properties.updatecache.checked
+            updatecache: properties.updatecache.checked,
+            includeleases: showLeases()
         }
 
         //console.log(request);
@@ -846,8 +861,13 @@
             } else {
                 if ( $.fn.DataTable.isDataTable( '#example' ) ) {
                     //$('#example').DataTable().clear();
-                    table.destroy();
-                    initDatatable(printers.body);
+                    table.clear();
+                    //table.destroy();
+                    //table.draw(true);
+                    //table.columns.adjust();
+                    table.columns( 'DHCPAddressState:name' ).visible( showLeases() );
+                    table.rows.add(printers.body).draw();
+                    //initDatatable(printers.body);
                 } else {
                     $(document).ready(function() {
                         initDatatable(printers.body);
@@ -859,6 +879,153 @@
     }
 
     function initDatatable(data) {
+        let columns = [
+            /*{
+                data: 'select',
+                orderable: false,
+                searchable: false,
+                render: function(data, type, row, meta) {
+                    return '<input type="checkbox" value="' + row['uid'] + '" name="queue" />';
+                }
+            },*/
+            { 
+                data: "uid",
+                title: "",
+                name: "uid"
+            },
+            { 
+                data: "Name",
+                title: "Name",
+                name: "Name"
+            },
+            { 
+                data: "PortName",
+                title: "PortName",
+                name: "PortName",
+                render: function(data, type, row, meta) {
+                    if(row['PortName']) {
+                        if(row['PrinterHostAddress'].join(',') != row['PortName'].join(',')) {
+                            return '<span style="color: #CCCC00;">' + row['PortName'].join(',') + '</span>';
+                        } else {
+                            return row['PortName'];
+                        }
+                    } else {
+                        console.log(row);
+                        return row['PortName'];
+                    }
+                    //console.log(row);
+                    //return row['PortName'];
+                }
+            },
+            { 
+                data: "PrinterHostAddress",
+                title: "PortAddress",
+                name: "PortAddress",
+                render: function(data, type, row, meta) {
+                    let ports = [];
+                    for(let i = 0; i <= row['PrinterHostAddress'].length - 1; i++) {
+                        ports.push('<a target="_blank" href="http://' + row['PrinterHostAddress'][i] + '">' + row['PrinterHostAddress'][i] + '</a>');
+                    }
+                    return ports.join(',')
+                }
+            },
+            { 
+                data: "DriverName",
+                title: "Driver",
+                name: "Driver",
+                render: function(data, type, row, meta) {
+                    return '<span title="' + row['DriverName'].join(',') + '">' + row['DriverName'].join(',') + '</span>';
+                }
+            },
+            { 
+                data: "Location",
+                title: "Location",
+                name: "Location"
+            },
+            { 
+                data: "Comment",
+                title: "Comment",
+                name: "Comment"
+            },
+            { 
+                data: "Shared",
+                title: "Shared",
+                name: "Shared"
+            },
+            { 
+                data: "ShareName",
+                title: "ShareName",
+                name: "ShareName"
+            },
+            { 
+                data: "PrinterStatus",
+                title: "Status",
+                name: "Status",
+                /*render: function(data, type, row, meta) {
+                    switch (row['PrinterStatus']) {
+                        case 0:
+                            return 'Ready';
+                            break;
+                        case 1:
+                            return 'Paused';
+                            break;
+                        case 2:
+                            return 'Error';
+                            break;
+                        case 3:
+                            return 'Paused - Error';
+                            break;
+                        case 4:
+                            return 'Deleting';
+                            break;
+                        case 128:
+                            return 'Deleting';
+                            break;
+                        case 130:
+                            return 'Error - Offline';
+                            break;
+                        case 131072:
+                            return 'Toner/Ink Low';
+                            break;
+                        default:
+                            return row['PrinterStatus'];
+                    }
+                    return row['PrinterStatus'].join(', ');
+                }*/
+            },
+            { 
+                data: "JobCount",
+                title: "JobCount",
+                name: "JobCount"
+            },
+            { 
+                data: "Servers",
+                title: "Servers",
+                name: "Servers",
+                render: function(data, type, row, meta) {
+                    //console.log(row);
+                    if(dedupe) {
+                        return '<span index="" title="' + row['Servers'].join('\r\n') + '">' + row['Servers'].length + '</span>';
+                    } else {
+                        return '<span>' + row['Servers'][0] + '</span>';
+                    }
+                }
+            },
+            { 
+                data: "DHCPAddressState",
+                title: "DHCPAddressState",
+                name: "DHCPAddressState",
+                visible: showLeases(),
+                render: function(data, type, row, meta) {
+                    let dhcp = [];
+                    for(let i = 0; i <= row['PrinterHostAddress'].length - 1; i++) {
+                        dhcp.push('<a title="' + row['PrinterHostAddress'][i] + '" target="_blank" href="/manage-leases?servers=' + row['DHCPServers'].join(',') + '&property=IPAddress&dedupe=false&value=%22' + row['PrinterHostAddress'][i] + '%22">' + row['DHCPAddressState'][row['PrinterHostAddress'][i]] + '</a>');
+                    }
+                    return dhcp.join(',');
+                }
+            }
+        ]
+
         table = $('#example').DataTable( {
             pageLength: 25,
             dom: 'Bfrtipl',
@@ -924,139 +1091,7 @@
                     }
                 }
             ],
-            columns: [
-                /*{
-                    data: 'select',
-                    orderable: false,
-                    searchable: false,
-                    render: function(data, type, row, meta) {
-                        return '<input type="checkbox" value="' + row['uid'] + '" name="queue" />';
-                    }
-                },*/
-                { 
-                    data: "uid",
-                    title: "",
-                    name: "uid"
-                },
-                { 
-                    data: "Name",
-                    title: "Name",
-                    name: "Name"
-                },
-                { 
-                    data: "PortName",
-                    title: "PortName",
-                    name: "PortName",
-                    render: function(data, type, row, meta) {
-                        if(row['PortName']) {
-                            if(row['PrinterHostAddress'].join(',') != row['PortName'].join(',')) {
-                                return '<span style="color: #CCCC00;">' + row['PortName'].join(',') + '</span>';
-                            } else {
-                                return row['PortName'];
-                            }
-                        } else {
-                            console.log(row);
-                            return row['PortName'];
-                        }
-                        //console.log(row);
-                        //return row['PortName'];
-                    }
-                },
-                { 
-                    data: "PrinterHostAddress",
-                    title: "PortAddress",
-                    name: "PortAddress",
-                    render: function(data, type, row, meta) {
-                        let ports = [];
-                        for(let i = 0; i <= row['PrinterHostAddress'].length - 1; i++) {
-                            ports.push('<a target="_blank" href="http://' + row['PrinterHostAddress'][i] + '">' + row['PrinterHostAddress'][i] + '</a>');
-                        }
-                        return ports.join(',')
-                    }
-                },
-                { 
-                    data: "DriverName",
-                    title: "Driver",
-                    name: "Driver",
-                    render: function(data, type, row, meta) {
-                        return '<span title="' + row['DriverName'].join(',') + '">' + row['DriverName'].join(',') + '</span>';
-                    }
-                },
-                { 
-                    data: "Location",
-                    title: "Location",
-                    name: "Location"
-                },
-                { 
-                    data: "Comment",
-                    title: "Comment",
-                    name: "Comment"
-                },
-                { 
-                    data: "Shared",
-                    title: "Shared",
-                    name: "Shared"
-                },
-                { 
-                    data: "ShareName",
-                    title: "ShareName",
-                    name: "ShareName"
-                },
-                { 
-                    data: "PrinterStatus",
-                    title: "Status",
-                    name: "Status",
-                    /*render: function(data, type, row, meta) {
-                        switch (row['PrinterStatus']) {
-                            case 0:
-                                return 'Ready';
-                                break;
-                            case 1:
-                                return 'Paused';
-                                break;
-                            case 2:
-                                return 'Error';
-                                break;
-                            case 3:
-                                return 'Paused - Error';
-                                break;
-                            case 4:
-                                return 'Deleting';
-                                break;
-                            case 128:
-                                return 'Deleting';
-                                break;
-                            case 130:
-                                return 'Error - Offline';
-                                break;
-                            case 131072:
-                                return 'Toner/Ink Low';
-                                break;
-                            default:
-                                return row['PrinterStatus'];
-                        }
-                        return row['PrinterStatus'].join(', ');
-                    }*/
-                },
-                { 
-                    data: "JobCount",
-                    title: "JobCount",
-                    name: "JobCount"
-                },
-                { 
-                    data: "Servers",
-                    title: "Servers",
-                    name: "Servers",
-                    render: function(data, type, row, meta) {
-                        //console.log(row);
-                        if(dedupe) {
-                            return '<span index="" title="' + row['Servers'].join('\r\n') + '">' + row['Servers'].length + '</span>';
-                        } else {
-                            return '<span>' + row['Servers'][0] + '</span>';
-                        }
-                    }
-                },
-            ]
+            columns: columns
         } );
     }
 </script>

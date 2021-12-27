@@ -368,16 +368,20 @@ router.get('/logout', function(req, res){
   if(req.user) {
     db.users.deleteUser(req.user.oid, function() {});
   }
-  req.session.destroy(function(err) {
-    req.logOut();
-    //res.redirect(msftconfig.destroySessionUrl);
-    if(req.headers.authorization) {
-      res.setHeader('WWW-Authenticate', 'Basic realm="Node"');
-      res.status(401).render('logout', { layout: null });
-    } else {
-      res.render('logout', { layout: null });
-    }
-  });
+  if(req.session) {
+    req.session.destroy(function(err) {
+      req.logOut();
+      //res.redirect(msftconfig.destroySessionUrl);
+      if(req.headers.authorization) {
+        res.setHeader('WWW-Authenticate', 'Basic realm="Node"');
+        res.status(401).render('logout', { layout: null });
+      } else {
+        res.render('logout', { layout: null });
+      }
+    });
+  } else {
+    res.redirect('/');
+  }
 });
 
 router.post('/theme', function(req, res){
