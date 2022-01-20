@@ -743,6 +743,7 @@
                     //console.log(table.row('#' + e.request.body.rowId).index());
                     if(table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data().length <= 1) {
                         //console.log('requesting row delete');
+                        table.row(table.row('#' + e.request.body.rowId).index()).deselect();
                         table.row(table.row('#' + e.request.body.rowId).index()).remove().draw(false);
                     } else {
                         //console.log(table.cell(e.request.body.row, 'Servers:name').data());
@@ -861,6 +862,7 @@
             } else {
                 if ( $.fn.DataTable.isDataTable( '#example' ) ) {
                     //$('#example').DataTable().clear();
+                    table.rows().deselect();
                     table.clear();
                     //table.destroy();
                     //table.draw(true);
