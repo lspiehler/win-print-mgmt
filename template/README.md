@@ -1,0 +1,1 @@
+External templates.js may be mounted here
