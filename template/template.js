@@ -147,5 +147,31 @@ module.exports = {
                 dmDefaultSource: 261
             }
         }
+    ],
+    "KX DRIVER for Universal Printing": [
+        false,
+        {
+            options: {
+                dmDefaultSource: 14
+            }
+        },
+        {
+            options: {
+                dmDefaultSource: 3
+            }
+        }
+    ],
+    "TOSHIBA Universal Printer 2": [
+        false,
+        {
+            options: {
+                dmDefaultSource: 1
+            }
+        },
+        {
+            options: {
+                dmDefaultSource: 2
+            }
+        }
     ]
 }
