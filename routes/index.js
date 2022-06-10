@@ -205,7 +205,7 @@ router.get('/manage-queues', ensureAuthenticated, function(req, res, next) {
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('manage-queues', { title: 'qManager', inventory: sorted, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP }});
+      res.render('manage-queues', { title: 'qManager', inventory: sorted, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP, deletelimit: config.QUEUEDELETELIMIT, modifylimit: config.QUEUEMODIFYLIMIT }});
     }
   });
 });
@@ -229,7 +229,7 @@ router.get('/manage-leases', ensureAuthenticated, function(req, res, next) {
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('manage-leases', { title: 'qManager', inventory: sorted, user: req.user, queryparms: JSON.stringify(req.query), theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP } });
+      res.render('manage-leases', { title: 'qManager', inventory: sorted, user: req.user, queryparms: JSON.stringify(req.query), theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP, deletelimit: config.DHCPDELETELIMIT, modifylimit: config.DHCPMODIFYLIMIT } });
     }
   });
 });

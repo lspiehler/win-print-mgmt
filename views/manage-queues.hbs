@@ -82,6 +82,8 @@
     var settingstype;
     var dedupe;
     var dhcpenabled = {{#if config.dhcpenabled}}true{{else}}false{{/if}}
+    var deletelimit = {{config.deletelimit}}
+    var modifylimit = {{config.modifylimit}}
 
     function DHCPIntegration() {
         if(dhcpenabled) {
@@ -541,6 +543,10 @@
             alert('You must select one or more queues.');
             return;
         }
+        if(requests.length > modifylimit) {
+            alert('You may only select up to ' + modifylimit + ' queues to modify, but you currently have ' + requests.length + ' selected.' )
+            return;
+        }
         settingstype = 'printsettings';
         let settingsmodal = $('#settingsModal');
         //console.log(configmodal);
@@ -555,6 +561,10 @@
         let requests = createRequests();
         if(requests.length <= 0) {
             alert('You must select one or more queues.');
+            return;
+        }
+        if(requests.length > modifylimit) {
+            alert('You may only select up to ' + modifylimit + ' queues to modify, but you currently have ' + requests.length + ' selected.' )
             return;
         }
         settingstype = 'queuesettings';
@@ -727,6 +737,10 @@
         let requests = createRequests();
         if(requests.length <= 0) {
             alert('You must select one or more queues.');
+            return;
+        }
+        if(requests.length > deletelimit) {
+            alert('You may only select up to ' + deletelimit + ' queues for deletion, but you currently have ' + requests.length + ' selected.' )
             return;
         }
         let c = confirm('Are you sure you want to delete the following queues?\r\n' + JSON.stringify(requests, null, 2));

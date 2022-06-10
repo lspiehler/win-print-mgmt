@@ -30,5 +30,9 @@ module.exports = {
 	MSFTCOOKIEIV1: process.env.MSFTCOOKIEIV1 || false,
 	MSFTCOOKIEKEY2: process.env.MSFTCOOKIEKEY2 || false,
 	MSFTCOOKIEIV2: process.env.MSFTCOOKIEIV2 || false,
-	FQDN: process.env.FQDN || ''
+	FQDN: process.env.FQDN || '',
+	QUEUEDELETELIMIT: parseInt(process.env.QUEUEDELETELIMIT) || 5,
+	QUEUEMODIFYLIMIT: parseInt(process.env.QUEUEMODIFYLIMIT) || 5,
+	DHCPDELETELIMIT: parseInt(process.env.DHCPDELETELIMIT) || 5,
+	DHCPMODIFYLIMIT: parseInt(process.env.DHCPMODIFYLIMIT) || 5
 }

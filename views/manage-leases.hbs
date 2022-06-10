@@ -48,6 +48,8 @@
 <script>
     var queryparms = {{{queryparms}}}
     var table;
+    var deletelimit = {{config.deletelimit}}
+    var modifylimit = {{config.modifylimit}}
 
     window.onload = function() {
         if(queryparms.property) {
@@ -227,6 +229,10 @@
             alert('You must select one or more leases.');
             return;
         }
+        if(requests.length > deletelimit) {
+            alert('You may only select up to ' + deletelimit + ' leases for deletion, but you currently have ' + requests.length + ' selected.' )
+            return;
+        }
         let c = confirm('Are you sure you want to delete the following leases?\r\n' + JSON.stringify(requests, null, 2));
         if(c===true) {
             let sum = 0;
@@ -253,6 +259,10 @@
         let requests = createRequests();
         if(requests.length <= 0) {
             alert('You must select one or more leases.');
+            return;
+        }
+        if(requests.length > modifylimit) {
+            alert('You may only select up to ' + modifylimit + ' leases when creating reservations, but you currently have ' + requests.length + ' selected.' )
             return;
         }
         let c = confirm('Are you sure you want to reserve the following leases?\r\n' + JSON.stringify(requests, null, 2));
