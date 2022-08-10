@@ -186,6 +186,14 @@ router.get('/auth', ensureAuthenticated, function(req, res, next) {
     res.redirect('/');
 });
 
+router.get('/websocket-test', function(req, res, next) {
+  res.render('websocket-test', { layout: false, title: 'qManager' });
+});
+
+router.get('/debug', function(req, res, next) {
+  res.render('debug', { layout: false, title: 'qManager' });
+});
+
 router.get('/manage-queues', ensureAuthenticated, function(req, res, next) {
   let theme = defaulttheme;
   let dark = false;

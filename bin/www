@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const config = require('../config');
+const websocket = require('../lib/websocket/messageQueue');
 
 /**
  * Module dependencies.

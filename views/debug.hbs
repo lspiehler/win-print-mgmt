@@ -1,0 +1,41 @@
+<script>
+    function handleRequest(e) {
+        e.preventDefault();
+        let div = document.getElementById('result');
+        div.innerHTML = '';
+        //console.log(e.target);
+        var data = new FormData(e.target);
+        e.submitter.disabled = true;
+        const formProps = Object.fromEntries(data);
+
+        //console.log(formProps);
+
+        let options = {
+            path: '/api/debug',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+
+        let body = {
+            host: formProps.host
+        }
+
+        httpRequest({options: options, body: body}, function(err, resp) {
+            e.submitter.disabled = false;
+            if(err) {
+                console.log(err);
+            } else {
+                div.innerText = JSON.stringify(resp, null, 2);
+            }
+        });
+    }
+</script>
+<script src="/javascripts/print-management.js"></script>
+<form onsubmit="handleRequest(event);">
+    <input type="submit" value="Submit" />
+</form>
+<pre style="margin-top: 20px;" id="result">
+
+</pre>

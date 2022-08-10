@@ -212,9 +212,23 @@ router.get('/printer/:object/:action/:server', ensureAuthenticated, function(req
     }
 });
 
+router.post('/debug', function(req, res, next) {
+    console.log('debug request');
+    printerapi['port']['list']({servers: ['DESKTOP-UF8E9D4']}, function(err, resp) {
+        if(err) {
+            console.log(err);
+        } else {
+
+        }
+        res.json(resp);
+    });
+  });
+
 router.post('/printer/:object/:action', ensureAuthenticated, function(req, res, next) {
     //console.log(printerapi.hasOwnProperty(req.params.object));
     //console.log(printerapi[req.params.object].hasOwnProperty(req.params.action));
+    //console.log(req.params.object);
+    //console.log(req.params.action);
     //console.log(req.body);
     res.set('Cache-Control', 'public, max-age=0, no-cache');
     if(printerapi.hasOwnProperty(req.params.object) && printerapi[req.params.object].hasOwnProperty(req.params.action)) {
