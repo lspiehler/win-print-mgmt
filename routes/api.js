@@ -224,6 +224,17 @@ router.post('/debug', function(req, res, next) {
     });
   });
 
+router.get('/print-servers', ensureAuthenticated, function(req, res) {
+    //console.log(req.user);
+    server.inventory.list({}, function(err, inventory) {
+        if(err) {
+
+        } else {
+            res.json(inventory);
+        }
+    });
+});
+
 router.post('/printer/:object/:action', ensureAuthenticated, function(req, res, next) {
     //console.log(printerapi.hasOwnProperty(req.params.object));
     //console.log(printerapi[req.params.object].hasOwnProperty(req.params.action));
