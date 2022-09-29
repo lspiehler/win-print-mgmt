@@ -70,5 +70,5 @@ module.exports = {
 	EMAILSENDER: process.env.EMAILSENDER || '"Test" <test@fakeemail.com>',
 	EMAILUSER: getValue('EMAILUSER') || false,
 	EMAILPASS: getValue('EMAILPASS') || false,
-	EMAILNOTIFYTO: process.env.EMAILNOTIFYTO || 'test@fakeemail.com'
+	EMAILNOTIFYTO: process.env.EMAILNOTIFYTO || false
 }
