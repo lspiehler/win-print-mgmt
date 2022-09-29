@@ -863,6 +863,7 @@
         //console.log(request);
 
         listPrinters(request, function(err, printers) {
+            //console.log('calling printers');
             if(err) {
                 if(err=='401') {
                     let ok = confirm('You are no longer logged in. Click OK to be redirected to the login screen.')
@@ -870,24 +871,30 @@
                         window.location = '/login'
                     }
                 } else {
+                    alert(err);
                     console.log(err);
                 }
                 $('#overlay').fadeOut();
             } else {
-                if ( $.fn.DataTable.isDataTable( '#example' ) ) {
-                    //$('#example').DataTable().clear();
-                    table.rows().deselect();
-                    table.clear();
-                    //table.destroy();
-                    //table.draw(true);
-                    //table.columns.adjust();
-                    table.columns( 'DHCPAddressState:name' ).visible( showLeases() );
-                    table.rows.add(printers.body).draw();
-                    //initDatatable(printers.body);
+                //console.log(printers);
+                if(printers.body.result=="error") {
+                    alert(printers.body.message);
                 } else {
-                    $(document).ready(function() {
-                        initDatatable(printers.body);
-                    } );
+                    if ( $.fn.DataTable.isDataTable( '#example' ) ) {
+                        //$('#example').DataTable().clear();
+                        table.rows().deselect();
+                        table.clear();
+                        //table.destroy();
+                        //table.draw(true);
+                        //table.columns.adjust();
+                        table.columns( 'DHCPAddressState:name' ).visible( showLeases() );
+                        table.rows.add(printers.body).draw();
+                        //initDatatable(printers.body);
+                    } else {
+                        $(document).ready(function() {
+                            initDatatable(printers.body);
+                        } );
+                    }
                 }
                 $('#overlay').fadeOut();
             }
