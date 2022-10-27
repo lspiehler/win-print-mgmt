@@ -8,5 +8,6 @@ ADD . /var/node/win-print-mgmt/
 WORKDIR /var/node/win-print-mgmt
 
 EXPOSE 80/tcp
+EXPOSE 3001/tcp
 
 CMD ["node", "./bin/www"]
