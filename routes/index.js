@@ -260,7 +260,11 @@ function ensureAuthenticated(req, res, next) {
     return next();
   }
   if(config.MSFTAUTH && req.isAuthenticated()) {
-    if(req.user._json.groups.indexOf(config.MSFTADMINGROUPID) >= 0){
+    if(req.user._json.groups) {
+      if(req.user._json.groups.indexOf(config.MSFTADMINGROUPID) >= 0){
+        req.user.isAdmin = true;
+      }
+    } else {
       req.user.isAdmin = true;
     }
     //console.log(req.user);

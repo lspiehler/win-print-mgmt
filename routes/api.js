@@ -37,10 +37,14 @@ function ensureAuthenticated(req, res, next) {
     return next();
     }
     if (req.isAuthenticated()) {
+      if(req.user._json.groups) {
         if(req.user._json.groups.indexOf(config.MSFTADMINGROUPID) >= 0){
             req.user.isAdmin = true;
         }
-        return next();
+      } else {
+        req.user.isAdmin = true;
+      }
+      return next();
     }
     if(req.headers.authorization) {
       //console.log(req.headers.authorization);
