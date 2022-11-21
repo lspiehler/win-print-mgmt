@@ -150,14 +150,18 @@
                 }
                 $('#overlay').fadeOut();
             } else {
-                if ( $.fn.DataTable.isDataTable( '#example' ) ) {
-                    //$('#example').DataTable().clear();
-                    table.destroy();
-                    initDatatable(printers.body.data);
+                if(printers.body.result=="error") {
+                    alert(printers.body.message);
                 } else {
-                    $(document).ready(function() {
+                    if ( $.fn.DataTable.isDataTable( '#example' ) ) {
+                        //$('#example').DataTable().clear();
+                        table.destroy();
                         initDatatable(printers.body.data);
-                    } );
+                    } else {
+                        $(document).ready(function() {
+                            initDatatable(printers.body.data);
+                        } );
+                    }
                 }
                 $('#overlay').fadeOut();
             }
@@ -243,6 +247,27 @@
             //console.log(requests);
             runJobs(requests, '/api/dhcp/lease/delete', 0,
             function(e) {
+                if(e.response.body.result == 'success') {
+                    //console.log(table.row('#' + e.request.body.rowId).index());
+                    if(table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data().length <= 1) {
+                        //console.log('requesting row delete');
+                        table.row(table.row('#' + e.request.body.rowId).index()).deselect();
+                        table.row(table.row('#' + e.request.body.rowId).index()).remove().draw(false);
+                    } else {
+                        //console.log(table.cell(e.request.body.row, 'Servers:name').data());
+                        let index = table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data().indexOf(e.request.body.server)
+                        let removed = table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data().splice(index, 1);
+                        //console.log(table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').data())
+                        //console.log(removed)
+                        //table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').render();
+                        table.cell(table.row('#' + e.request.body.rowId).index(), 'Servers:name').invalidate().draw(false);
+                    }
+                    //console.log(e);
+
+                } else {
+                    //console.log('deletion failed');
+                    //console.log(e);
+                }
                 appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.clientid + ' - ' + e.response.body.message);
                 updateProgress();
             }, function(err, resp) {
