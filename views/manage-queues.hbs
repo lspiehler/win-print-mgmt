@@ -1051,7 +1051,7 @@
 
         table = $('#example').DataTable( {
             pageLength: 25,
-            dom: 'Bfrtipl',
+            dom: 'Bfrtip',
             buttons: [
                 {{#if user.isAdmin}}{
                     text: 'Delete',
@@ -1094,7 +1094,11 @@
                     action: function() {
                         copyQueue();
                     }
-                }{{/if}}
+                },{{/if}}
+                {
+                    extend: 'csvHtml5',
+                    text: 'Export CSV'
+                }
             ],
             data: data,
             select: {
