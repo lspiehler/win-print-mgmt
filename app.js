@@ -93,6 +93,8 @@ var app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
 
+app.enable('trust proxy', true);
+
 if(config.MSFTAUTH) {
   app.use(methodOverride());
   app.use(expressSession({ secret: config.MSFTSESSIONSECRET, resave: true, saveUninitialized: false }));
