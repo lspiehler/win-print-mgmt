@@ -1,6 +1,17 @@
 <form onsubmit="submitForm(); return false;">
     <table>
-        <tr><td>Servers:</td><td><select class="form-control" id="servers" multiple>
+        <tr>
+            <td>Groups:</td>
+            <td>
+                <select class="form-control" id="groups" onchange="selectGroupMembers(this);">
+                    <option value="0">None</option>
+                    {{#each groups}}
+                    <option value="{{@key}}">{{@key}} ({{this.length}})</option>
+                    {{/each}}
+                </select>
+            </td>
+        </tr>
+        <tr><td>Servers:</td><td><select class="form-control" id="servers" onchange="clearGroupDropdown();" multiple>
         {{#each inventory}}
             <option value="{{this}}">{{this}}</option>
         {{/each}}
@@ -84,6 +95,33 @@
     var dhcpenabled = {{#if config.dhcpenabled}}true{{else}}false{{/if}}
     var deletelimit = {{config.deletelimit}}
     var modifylimit = {{config.modifylimit}}
+    var groups = {{{JSONstringify groups}}}
+
+    function clearGroupDropdown() {
+        let groups = document.getElementById("groups");
+        groups.selectedIndex = 0;
+    }
+
+    function selectGroupMembers(elem) {
+        let group = elem.options[elem.selectedIndex].value;
+        let members = document.getElementById("servers");
+        if(group != "0") {
+            //console.log(groups[group]);
+            members.selectedIndex = -1;
+            for(let i = 0; i < groups[group].length; i++) {
+                for(let j = 0; j < members.options.length; j++) {
+                    if(groups[group][i].toUpperCase() == members.options[j].value.toUpperCase()) {
+                        members.options[j].selected = true;
+                        break;
+                    } else {
+                        //members.options[j].selected = false;
+                    }
+                }
+            }
+        } else {
+            members.selectedIndex = -1;
+        }
+    }
 
     function DHCPIntegration() {
         if(dhcpenabled) {
@@ -894,6 +932,9 @@
                         $(document).ready(function() {
                             initDatatable(printers.body);
                         } );
+                    }
+                    if(properties.updatecache.checked) {
+                        properties.updatecache.checked = false;
                     }
                 }
                 $('#overlay').fadeOut();

@@ -1,5 +1,6 @@
 var createError = require('http-errors');
 var express = require('express');
+var exphbs  = require('express-handlebars');
 var expressSession = require('express-session');
 var path = require('path');
 var cookieParser = require('cookie-parser');
@@ -89,7 +90,10 @@ var apiRouter = require('./routes/api');
 
 var app = express();
 
+var helpers = require('handlebars-helpers')(['comparison', 'string', 'object']);
+
 // view engine setup
+app.engine('.hbs', exphbs.engine({ layoutsDir: 'views', defaultLayout: 'layout', extname: '.hbs' , helpers: helpers}));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
 

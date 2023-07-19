@@ -10,6 +10,7 @@ const db = require('../db');
 const formidable = require('formidable')
 const fs = require('fs');
 const csv = require('csv-parse');
+const sortObject = require('sort-object-keys');
 
 var themes = {
   dark: {
@@ -150,7 +151,15 @@ router.get('/create-print-queue', ensureAuthenticated, function(req, res, next) 
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('create-print-queue', { title: 'qManager', inventory: sorted, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP }});
+      server.inventory.groups({}, function(err, servergroups) {
+        if(err) {
+          res.render('error', { message: err });
+        } else {
+          //console.log(groups);
+          let groups = sortObject(servergroups);
+          res.render('create-print-queue', { title: 'qManager', inventory: sorted, groups: groups, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP }});
+        }
+      });
     }
   });
 });
@@ -173,7 +182,15 @@ router.get('/bulk-create-print-queue', ensureAuthenticated, function(req, res, n
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('bulk-create-print-queue', { title: 'qManager', inventory: sorted, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP }});
+      server.inventory.groups({}, function(err, servergroups) {
+        if(err) {
+          res.render('error', { message: err });
+        } else {
+          //console.log(groups);
+          let groups = sortObject(servergroups);
+          res.render('bulk-create-print-queue', { title: 'qManager', inventory: sorted, groups: groups, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP }});
+        }
+      });
     }
   });
 });
@@ -213,7 +230,15 @@ router.get('/manage-queues', ensureAuthenticated, function(req, res, next) {
         sorted.push(inventory[i].name);
       }
       sorted.sort();
-      res.render('manage-queues', { title: 'qManager', inventory: sorted, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP, deletelimit: config.QUEUEDELETELIMIT, modifylimit: config.QUEUEMODIFYLIMIT }});
+      server.inventory.groups({}, function(err, servergroups) {
+        if(err) {
+          res.render('error', { message: err });
+        } else {
+          //console.log(groups);
+          let groups = sortObject(servergroups);
+          res.render('manage-queues', { title: 'qManager', inventory: sorted, groups: groups, user: req.user, theme: { class: themes[theme], dark: dark }, config: { msftauth: config.MSFTAUTH, dhcpenabled: config.ENABLEDHCP, deletelimit: config.QUEUEDELETELIMIT, modifylimit: config.QUEUEMODIFYLIMIT }});
+        }
+      });
     }
   });
 });
