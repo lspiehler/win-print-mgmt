@@ -2,10 +2,12 @@ var express = require('express');
 var router = express.Router();
 const serverapi = require('../api/server');
 const server = require('../lib/server');
+const dhcpinventorylib = require('../lib/dhcp/inventory');
 const service = require('../api/service');
 const printerapi = require('../api/printer');
 const dhcpapi = require('../api/dhcp');
 const config = require('../config');
+const wsmq = require('../lib/websocket/messageQueue');
 const auth = require('basic-auth');
 
 function basicAuth(params) {
@@ -237,6 +239,32 @@ router.post('/debug', function(req, res, next) {
             res.json(inventory);
         }
     });
+});
+
+router.get('/dhcp-servers', ensureAuthenticated, function(req, res) {
+    //console.log(req.user);
+    dhcpinventorylib.list({}, function(err, inventory) {
+        if(err) {
+
+        } else {
+            res.json(inventory);
+        }
+    });
+});
+
+router.get('/server-connections', ensureAuthenticated, function(req, res) {
+    //console.log(req.user);
+    let wsc = wsmq.getConnections();
+    let connections = {}
+    let keys = Object.keys(wsc);
+    for(let i = 0; i < keys.length; i++) {
+        connections[keys[i]] = {
+            agent: wsc[keys[i]]['agent'],
+            id: wsc[keys[i]]['id'],
+            inventory: wsc[keys[i]]['inventory']
+        }
+    }
+    res.json(connections);
 });
 
 router.get('/groups', ensureAuthenticated, function(req, res) {
