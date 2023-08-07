@@ -407,14 +407,19 @@ router.get('/logout', function(req, res){
   }
   if(req.session) {
     req.session.destroy(function(err) {
-      req.logOut();
-      //res.redirect(msftconfig.destroySessionUrl);
-      if(req.headers.authorization) {
-        res.setHeader('WWW-Authenticate', 'Basic realm="Node"');
-        res.status(401).render('logout', { layout: null });
-      } else {
-        res.render('logout', { layout: null });
-      }
+      //req.logOut(function(err) {
+        //res.redirect(msftconfig.destroySessionUrl);
+      //  if(err) {
+      //    console.log('log out failed:');
+      //    console.log(err);
+      //  }
+        if(req.headers.authorization) {
+          res.setHeader('WWW-Authenticate', 'Basic realm="Node"');
+          res.status(401).render('logout', { layout: null });
+        } else {
+          res.render('logout', { layout: null });
+        }
+      //});
     });
   } else {
     res.redirect('/');
