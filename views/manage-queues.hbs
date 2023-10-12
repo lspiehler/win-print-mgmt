@@ -156,7 +156,12 @@
         let cell1 = row.insertCell(0);
         let link = document.createElement('a');
         //console.log("['" + options.join("', '") + "']");
-        link.href = "javascript:addOptionsRow(['" + options.join("', '") + "'])";
+        let keys = Object.keys(options);
+        //link.href = "javascript:addOptionsRow(['" + keys.join("', '") + "'])";
+        link.href = "javascript:true";
+        link.addEventListener('click', function() {
+            addOptionsRow(options);
+        });
         link.text = "Add Row"
         cell1.appendChild(link);
         return table;
@@ -336,7 +341,20 @@
                 for(let i = 0; i <= table.rows.length - 1; i++) {
                     if(table.rows[i].className=="optionsrow") {
                         let property = getSelectedOptions(table.rows[i].getElementsByClassName('optionproperty')[0])[0];
-                        let value = table.rows[i].getElementsByClassName('optionvalue')[0].value;
+                        //let value = table.rows[i].getElementsByClassName('optionvalue')[0].value;
+                        let optionvalue = table.rows[i].getElementsByClassName('optionvalue')[0];
+                        let value = optionvalue.value;
+                        if(optionvalue.tagName == 'INPUT') {
+                            value = optionvalue.value;
+                        } else {
+                            if(optionvalue.options[optionvalue.selectedIndex].value == 'TRUE') {
+                                value = true;
+                            } else if(optionvalue.options[optionvalue.selectedIndex].value == 'FALSE') {
+                                value = false;
+                            } else {
+                                value = optionvalue.options[optionvalue.selectedIndex].value;
+                            }
+                        }
                         if(options.hasOwnProperty(property)) {
                             alert('The same property should not be selected twice!');
                             return;
@@ -354,6 +372,9 @@
                     alert('Unrecognized settings type');
                     return;
                 }
+                //console.log('aqui');
+                //console.log(options);
+                //return;
                 let requests = createRequests(options);
                 if(requests[0].objects[0].options.hasOwnProperty('PortName')) {
                     if(DHCPIntegration()) {
@@ -543,10 +564,14 @@
         }
         let select = document.createElement('select');
         select.className = 'optionproperty';
-        for(let i = 0 ; i <= options.length - 1; i++) {
+        select.addEventListener('change', function(e) {
+            updateField(e, cell2, options);
+        });
+        let keys = Object.keys(options);
+        for(let i = 0 ; i <= keys.length - 1; i++) {
             let option = document.createElement('option');
-            option.value = options[i];
-            option.text = options[i];
+            option.value = keys[i];
+            option.text = keys[i];
             select.add(option);
         }
         cell1.appendChild(select);
@@ -554,6 +579,30 @@
         input.type = 'text';
         input.className = 'optionvalue';
         cell2.appendChild(input);
+    }
+
+    var updateField = function(e, elem, options) {
+        //console.log(e);
+        //console.log(elem);
+        //console.log(options);
+        elem.innerHTML = '';
+        console.log(typeof options[e.target.value]);
+        if(typeof options[e.target.value] == 'object') {
+            let select = document.createElement('select');
+            select.className = 'optionvalue';
+            for(let i = 0 ; i <= options[e.target.value].length - 1; i++) {
+                let option = document.createElement('option');
+                option.value = options[e.target.value][i];
+                option.text = options[e.target.value][i];
+                select.add(option);
+            }
+            elem.appendChild(select);
+        } else {
+            let input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'optionvalue';
+            elem.appendChild(input);
+        }
     }
 
     var initLog = function(message, totaljobs, clear) {
@@ -589,7 +638,7 @@
         let settingsmodal = $('#settingsModal');
         //console.log(configmodal);
         settingsmodal.find('.modal-title').text('Change Print Settings');
-        let options = ['dmDefaultSource', 'dmColor', 'dmDuplex'];
+        let options = {'dmDefaultSource': '', 'dmColor': ['1', '2'], 'dmDuplex': ['1', '2']};
         settingsmodal.find('.modal-body').html(createOptionsTable(options));
         addOptionsRow(options);
         settingsmodal.modal('show');
@@ -609,7 +658,7 @@
         let settingsmodal = $('#settingsModal');
         //console.log(configmodal);
         settingsmodal.find('.modal-title').text('Change Queue Options');
-        let options = ['PortName', 'Location', 'DriverName', 'Comment'];
+        let options = {'PortName': '', 'Location': '', 'DriverName': '', 'Comment': '', 'Shared': ['TRUE', 'FALSE'], 'ShareName': ''};
         settingsmodal.find('.modal-body').html(createOptionsTable(options));
         addOptionsRow(options);
         settingsmodal.modal('show');
