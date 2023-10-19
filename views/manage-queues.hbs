@@ -638,7 +638,7 @@
         let settingsmodal = $('#settingsModal');
         //console.log(configmodal);
         settingsmodal.find('.modal-title').text('Change Print Settings');
-        let options = {'dmDefaultSource': '', 'dmColor': ['1', '2'], 'dmDuplex': ['1', '2']};
+        let options = {'dmDefaultSource': '', 'dmColor': ['1', '2'], 'dmDuplex': ['1', '2'], 'dmCollate': ['0', '1', '2']};
         settingsmodal.find('.modal-body').html(createOptionsTable(options));
         addOptionsRow(options);
         settingsmodal.modal('show');
