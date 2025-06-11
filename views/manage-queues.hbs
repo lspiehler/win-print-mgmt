@@ -1009,22 +1009,27 @@
             { 
                 data: "Name",
                 title: "Name",
-                name: "Name"
+                name: "Name",
+                className: "position-relative addclipboard",
+                render: function(data, type, row, meta) {
+                    return '<span title="' + row['Name'] + '">' + row['Name'] + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
+                }
             },
             { 
                 data: "PortName",
                 title: "PortName",
                 name: "PortName",
+                className: "position-relative addclipboard",
                 render: function(data, type, row, meta) {
                     if(row['PortName']) {
                         if(row['PrinterHostAddress'].join(',') != row['PortName'].join(',')) {
-                            return '<span style="color: #CCCC00;">' + row['PortName'].join(',') + '</span>';
+                            return '<span title="' + row['PortName'].join(',') + '" style="color: #CCCC00;">' + row['PortName'].join(',') + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
                         } else {
-                            return row['PortName'];
+                            return '<span title="' + row['PortName'] + '">' + row['PortName'] + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
                         }
                     } else {
-                        console.log(row);
-                        return row['PortName'];
+                        //console.log(row);
+                        return '<span title="' + row['PortName'] + '">' + row['PortName'] + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
                     }
                     //console.log(row);
                     //return row['PortName'];
@@ -1034,31 +1039,55 @@
                 data: "PrinterHostAddress",
                 title: "PortAddress",
                 name: "PortAddress",
+                className: "position-relative addclipboard",
                 render: function(data, type, row, meta) {
                     let ports = [];
                     for(let i = 0; i <= row['PrinterHostAddress'].length - 1; i++) {
                         ports.push('<a target="_blank" href="http://' + row['PrinterHostAddress'][i] + '">' + row['PrinterHostAddress'][i] + '</a>');
                     }
-                    return ports.join(',')
+                    if(ports.length <= 0) {
+                        return '';
+                    } else {
+                        return '<span>' + ports.join(',') + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
+                    }
                 }
             },
             { 
                 data: "DriverName",
                 title: "Driver",
                 name: "Driver",
+                className: "position-relative addclipboard",
                 render: function(data, type, row, meta) {
-                    return '<span title="' + row['DriverName'].join(',') + '">' + row['DriverName'].join(',') + '</span>';
+                    return '<span title="' + row['DriverName'].join(',') + '">' + row['DriverName'].join(',') + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
                 }
             },
             { 
                 data: "Location",
                 title: "Location",
-                name: "Location"
+                name: "Location",
+                className: "position-relative addclipboard",
+                render: function(data, type, row, meta) {
+                    let location = row['Location'].join(',')
+                    if(location == '') {
+                        return '';
+                    } else {
+                        return '<span title="' + location + '">' + location + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
+                    }
+                }
             },
             { 
                 data: "Comment",
                 title: "Comment",
-                name: "Comment"
+                name: "Comment",
+                className: "position-relative addclipboard",
+                render: function(data, type, row, meta) {
+                    let comment = row['Comment'].join(',')
+                    if(comment == '') {
+                        return '';
+                    } else {
+                        return '<span title="' + comment + '">' + comment + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
+                    }
+                }
             },
             { 
                 data: "Shared",
@@ -1068,7 +1097,16 @@
             { 
                 data: "ShareName",
                 title: "ShareName",
-                name: "ShareName"
+                name: "ShareName",
+                className: "position-relative addclipboard",
+                render: function(data, type, row, meta) {
+                    let sharename = row['ShareName'].join(',')
+                    if(sharename == '') {
+                        return '';
+                    } else {
+                        return '<span title="' + sharename + '">' + sharename + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
+                    }
+                }
             },
             { 
                 data: "PrinterStatus",
@@ -1115,12 +1153,13 @@
                 data: "Servers",
                 title: "Servers",
                 name: "Servers",
+                className: "position-relative addclipboard",
                 render: function(data, type, row, meta) {
                     //console.log(row);
                     if(dedupe) {
                         return '<span index="" title="' + row['Servers'].join('\r\n') + '">' + row['Servers'].length + '</span>';
                     } else {
-                        return '<span>' + row['Servers'][0] + '</span>';
+                        return '<span>' + row['Servers'][0] + '</span><i title="Copy to Clipboard" onclick="copyToClipboard(this)" class="fa fa-clipboard"></i>';
                     }
                 }
             },
@@ -1211,4 +1250,43 @@
             columns: columns
         } );
     }
+
+    function copyToClipboard(elem) {
+        let text = elem.previousSibling.textContent || elem.previousSibling.innerText;
+        //console.log(text);
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function() {
+                //console.log('Copied to clipboard');
+                console.log('Copied "' + text + '" to clipboard');
+            }, function(err) {
+                console.error('Could not copy text: ', err);
+            });
+        } else {
+            // Fallback for older browsers
+            let textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand("copy");
+                console.log('Copied "' + text + '" to clipboard');
+            } catch (err) {
+                console.error('Could not copy text: ', err);
+            }
+            document.body.removeChild(textArea);
+        }
+    }
 </script>
+<style>
+    .addclipboard:hover .fa-clipboard {
+        display: inline-block !important;
+    }
+
+    .addclipboard .fa-clipboard {
+        display: none;
+        right: 0;
+        top: 4px;
+        position: absolute;
+    }
+
+</style>
