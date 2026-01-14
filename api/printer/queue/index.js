@@ -6,6 +6,8 @@ const qset = require('./set');
 const qsetconfig = require('./setconfig');
 const qflush = require('./flush');
 const qtestpage = require('./testpage');
+const dump = require('./dump');
+const ingest = require('./ingest');
 
 module.exports = {
     list: qlist,
@@ -15,5 +17,7 @@ module.exports = {
     set: qset,
     setconfig: qsetconfig,
     flush: qflush,
-    testpage: qtestpage
+    testpage: qtestpage,
+    dump: dump,
+    ingest: ingest
 }

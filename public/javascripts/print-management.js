@@ -21,7 +21,12 @@ function httpRequest(params, callback) {
             callback('401', resp);
         } else {
             try {
-                let body = JSON.parse(request.responseText);
+                let body;
+                if(request.getResponseHeader('Content-Type').indexOf('application/json') >= 0) {
+                    body = JSON.parse(request.responseText);
+                } else {
+                    body = request.responseText;
+                }
                 var resp = {
                     statusCode: request.status,
                     body: body

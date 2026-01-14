@@ -9,6 +9,14 @@ const dhcpapi = require('../api/dhcp');
 const config = require('../config');
 const wsmq = require('../lib/websocket/messageQueue');
 const auth = require('basic-auth');
+const fs = require('fs');
+const zlib = require('zlib');
+
+function base64UrlDecode(str) {
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) str += '=';
+    return Buffer.from(str, 'base64');
+}
 
 function basicAuth(params) {
     //console.log(params);
@@ -276,6 +284,36 @@ router.get('/groups', ensureAuthenticated, function(req, res) {
             res.json(inventory);
         }
     });
+});
+
+router.get('/printer/downloadsettings', ensureAuthenticated, function(req, res, next) {
+  let filepath = __dirname + '/../tmp/' + req.query.file;
+  //console.log(filepath);
+  fs.readFile(filepath, function(err, data) {
+    if(err) {
+      res.status(404).send('File not found');
+    } else {
+      fs.unlink(filepath, function() {
+        res.setHeader('Content-disposition', 'attachment; filename=' + req.query.name);
+        res.set('Content-Type', 'application/octet-stream');
+        res.status(200).send(data);
+      });
+    }
+  });
+});
+
+router.post('/printer/uploadsettings', ensureAuthenticated, function(req, res, next) {
+  let filepath = __dirname + '/../tmp/' + req.body.name;
+  const compressed = base64UrlDecode(req.body.settings);
+  const original = zlib.gunzipSync(compressed);
+  //console.log(filepath);
+  fs.writeFile(filepath, original, function(err, data) {
+    if(err) {
+      res.status(404).send('Failed to write file');
+    } else {
+      res.status(200).json({ status: 'success' });
+    }
+  });
 });
 
 router.post('/printer/:object/:action', ensureAuthenticated, function(req, res, next) {

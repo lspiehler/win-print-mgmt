@@ -96,6 +96,7 @@
     var deletelimit = {{config.deletelimit}}
     var modifylimit = {{config.modifylimit}}
     var groups = {{{JSONstringify groups}}}
+    var exportedsettings;
 
     function clearGroupDropdown() {
         let groups = document.getElementById("groups");
@@ -208,37 +209,87 @@
                         console.log(err);
                     }
                     callback(err, resp);
+                    params.index = params.index + 1;
+                    updateProgress();
+                    getQueueData(params, callback);
+                    return;
                 } else {
                     //console.log(resp.body.data[0].response);
-                    params.request.objects[params.index]['config'] = [
-                        {
-                            type: 8,
-                            options: {
-                                dmDefaultSource: resp.body.data[0].response.data.dmDefaultSource,
-                                dmColor: resp.body.data[0].response.data.dmColor,
-                                dmDuplex: resp.body.data[0].response.data.dmDuplex
-                            }
+                    let options = {
+                        path: '/api/printer/queue/dump',
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
                         }
-                    ]
+                    }
+                    //console.log(resp.body.data[0].response);
+
+                    let body = {
+                        server: params.request.objects[params.index].source,
+                        name: params.request.objects[params.index].name
+                    }
+
+                    httpRequest({options: options, body: body}, function(err, dump) {
+                        // console.log(err);
+                        // console.log(dump);
+                        if(err) {
+                            if(err=='401') {
+                                alert('You are no longer logged in!');
+                            } else {
+                                console.log(err);
+                            }
+                            callback(err, resp);
+                            return;
+                        } else {
+                             params.request.objects[params.index]['config'] = [
+                                {
+                                    type: 8,
+                                    options: {
+                                        dmDefaultSource: resp.body.data[0].response.data.dmDefaultSource,
+                                        dmColor: resp.body.data[0].response.data.dmColor,
+                                        dmDuplex: resp.body.data[0].response.data.dmDuplex
+                                    },
+                                    // settings: 'H4sIAAAAAAAEAO1cTYwbSRV-7ZlMMk52M7ubhIEVKxPCKkjxxPM_iRISjz0TO2vPGNuzmYhBSY_dsa14bK_dnmQCh4AQoBUcAAmtOKDliMSRwwr2kAOHCK4rgUQEnFaIE1wQJ5b3XlXb3WV7xs5oIzKpr1Xd1a-qX72qelX1qqq7YyDw4Zy4XpL3n0iM5cR9TNJTb4rruCmuRfncEaQbRHe5f35JhH2M1yfofofuPXQ_Rfc2ur_7RHgU_ZdkXCctAwbD0zzzLGHAsYePUcCPpJAn0Png18ZLfHcGjsFxMA7xzTGK8ovSu5_9659_m_zejxOv_6h86icwegZCe8YhrjBmiDSG-Dw6LmiirI_7wCmnE3AEJZBxxdnPzwc8NKxJjqc-7x8XcTv4jkOC5BT0QwGKRP6jHjna9NEFQfcLPiz0MEAk_pl_7cw3f37u5Du_ufLd91_7_C_LH__hvz9svLv2jdfvrP7-KsCCkGvQ5_wLQu6B05P1KDJ56FXFn4AwLMIU-mbwmIc52GjRzqGvCjkwoQyrUMHzDtKiUIdtiGBIhXgND408AfsLkU--ddjAkvyHv3okj9fjsO7DXOJ5CM8JsMDGw8Jn9w_DdaWqOGmIdq_Gi8ZX1k7D45Ezo6nxf19-b2U3nhehsx066tRWK2PAturr4Og9NP6fMEh9PB4ByCSz18k_Bh-MfEoiaWhoaGhofCpIoXkbX0vFxuAVD73XWEhWS_4p0xLWYXuORqB09jt4Gsq1FwLwNbRZyW614Ov7TFPj-YOufw2NFxcz6FLS74wVjx498lzdMKTrHO8eXtktnd5jZ28k4CaEIYNHCuKwBDGkLEF6t2Q0NDQ09oSh-I-DWDMFxe9eQ3Xo7nA3Zo4Ip6GhoaHxbEC2qN430tB4_kG7w932rY1n4FT7bi97T0OjX6QhDDfwWoQaPEBXg3tQgXmkZGEV1jB8FQIQRDeF9Dxel6EMdbwmwIRNvCahBDmkVPGuimFVKMAO845BSsZr8Nsk1_nNkgDMIK9ZCKEvBREMp9e7JjHNKZjA6wRcwLAJpM6C-52Xtm98TLRH93tgMCbyM-xyGhoaGhoaGhoaGhoaGhoaBw9ZEPN-97oAfWvWgDRcg0UI8JcwtEJB6xcZqIEJObB4HYLWL-5ACUMtmOAVjS3m-U10L0le9E7KVcmTONVgB5blMw3YgDhSkxjWpu0vbcrPYVfa9P3ZsT3SjiKtjrQc2JzWDsdfhQQ6ekNlXeEZBfGd2G48kxiWhybTCVsYmuPzBNLLeAAvVDrldE7K-gHzb_BXSCXYbn1RVOP7Ckq4yNcVLIstWV5hTIck30KazWVhcgo7XGoWy0B5Ay43wcXiMnWeVOMlkUMFw4gPrV5ZeNA6Fj0bwDKuYwhxn-QS73435bmb9tzNcJ4S6EaV_Bt75l_oRJnzKsrWkM-6eUUH4FWVdIq_ofBZ74tPFMuqxuV3H0uyyWuCxNXmcnNwW-G90RfvDDqTudN9YRf-9O6X38U_Idv27vypru9jPpfwTPwqrAE_O7o_fjcVfn8Ze3p-dFXl-9PQ_vip8r2DDfyx0h6pL6kbe_OjOihhrrvVjPfLQLorcKsCTp_aW5Pb7DbrcpjbSZjbR5jXchfRH4CzcB17lgx8mSmzCmUSjz_yajBxrTCvMvdN1Fd-EUNCXUOiXGKd9Ain3Elf7EFP8jvHJuYwB0Uu_yrmapPbQwDlNLnnrnC_XcWytLmHqnOPkkaKLdtynvMyB291LZ3upUD3q0xZ4OdAtit3PVIux_rQC6ce0-gz0b_TUX-Cl1vnYn3p3ArmYwtLhELWkC6-CYgpvKJ96q-FvJxxCh4a8AMlv1SOZ_fks8o-of9i3KBabPToX1I8FmZ57yPOLYP2FlaQfwb1JYzhSxyvqOQpP0CfkebxjHrkZkuebtKs-0S_rI6dL--ZToL1sMAjW4FbnNhNWed6BVkHbvmv9iV_ujUanZJlcFiR7Y2-eazhXUmO1kLKBvoovui5mq1xb12RNduXrLtzPTWgjudd92_zuSFrjr6dFs-6y4LK1yd5Zbheq9xP1JmXxVYScay1NACk_J18zvXk05bJsZMABttbe6ikd1W6bumV5Vfkbon3uxOo9mGU9ud6pO-0Dndee-0Nirbce9zs5O21QyidLFKcdGAPfenNb4lLROWV6lLP_j15eWu6veu5uz3Xm99bbPHWPPZyHvWFaqnRknVdkTXRl6wZ7B9Mnm-468sts6rrVJ5v9sHXCRF2otvav4FpijlKZ6zd-7zu6VX5bMs9a8dudstM8703evBoYs4jrtxv4JHBXAa7_KNBtKVOnRjrwVu07M627-XfKW9iV55F2cIyXbmrvAdpD9uePtNtJ4hnVDnJMjzbg1cTz2RZFtliqcFFOI-HV7rzrpK9pMi5sIucd3jGVWhp_6_AOye-je46iD42xdrd4N41zVxsfobCxBhvs_7kZLtak7V2DXNQkvbGFPZZOTxbmPICphzE3muGe-ognyk0iCU1xf1okPs4shdnMfY022_T2PdtMq_vu2Q9K_V7mdtHBV2Ue26T5RNW6T3ZPuOsacBSx7FusthnraC0SayVIobf49Khsg7KtYm7kgO9GXKLS2wSnQVzso175SDuI13kcGbfd5inzfXqjLcx-YXPhwovqrtvd-G1ijIncZyhsSjRoRsFrJsJ1DhnDGrwqoqNtByvJ5zHu3uyr7iLd1eQh_BT2VzGMp7HnqnGeb7M84x5rIkFpDWw7GtI8644CO3Ju_TuktSdYVBXJ9yWRjs_cWkduUNVu2NoxDt-X5JtcKHPNMTajcVtSdgM7nWoTvthjUvcsR4CXNtUS6Ou9BMD5HGZ69uSlj6wjX9bKbONAfipcQQ9g7QH3H-F0CD7js8rb1bSn54_1UPI95C_obgNDvJsvXtB_64hu3OoRTG6-DQOOtxzR9JBZ-7YX5ux2C_6SrLfdrDnqnLP1NZ0HG9R-z5SdH1D0vebDiGcy1mNRrW-s9q0a017sVRpwEq1YoE_3LSrkWrlTqnQrJt2qYqjfdWOVxq2WS5befBn6-bOdBfajEKLNmtl6_5apWQrAUmz0jTLIhiy9SammbS2UBS4MJdcBH-qXqrYVj1m1vPRUuOu8vT16mbasq1KF8mi1nYpZ8UbyWqtZNWVwEzOLFvL9epWwqwXrJRZwxiu4HDORqEizYZd3UqblYIFU5NzoVDo1vQsXcAfqW5tlipW0sqXzOxOzWqEK_l4xSk6F6dYSt6Ym2UrFlmF2VAoY5uY23rwq7NzFyaVKFR2y5ZpN-vWirllgSjfzjjtwGBkfnI6FO4SJ1N6IOPcwlSD5BKrN5bStyLhTGYpm12iZ5arlVbB1CGbXmMqZyyVTIjMT84GJy8wuaUfmJWkWZNKogTgc-6wVlCLXygY4ibjmdMNPt6Q_tLehPjsl_rjdYVfdgB-NGY6a_0RXgsUa6w0HoPS9m6je98YhC-tQN1ke2yZ16SW0G6MIi2LbpC9EH4VvN8NERgxBtsVAZ-hbo3AkKHuj8CwoW6SwCGjY6dk5OCMgtTXuvWK9GwQvWqv0ro1S6xbXT3m1S3qkZ8cHYT3ElLivMLZXbuAV-cavO6dQy53eAWVe_6TrMRk8pfEEtAJqdWWZ52C475meBeWiyAWnBGvtmpfpCNmIhVMjefaPmgzbTK56DB9hZmaPHssC0t7zKCF8iovtCCOG8DzL-KVY-Vm8ssGeDfCXmJOJZwdFNm-nUO7PoiWPa24F3AWsCV0l_51GWPJt6WOhzBqkJfwp71Rj3ISYm7U4AZGc6UAfIUjz3gj-zHyNZamgQdxpqSDzF8RYVQRoeB6DHGEC5PUhLIS4OKsOVOpw0bnXgaIthYgzyHHM-x4hhyPz_EYB6dhamhoaGhoaGi8gKA5rntuQnPqfucmi7xzUZK7pGIvnYxDehfSvQ5NaZztk2ec5wC2nMFGW3xDaAqfRzeNZ9oJmUIb-iKep_BMJvJFfiNof-tpEZ5Db3I8mie433Ky5QpYQ-axrKRTHCAdbx7be-gi_ZrcYWnvD__HEOvE7vdV_2bo__gf9P_4F087pdV2qdP6__4O9P_9NQapD_1_fw0NDQ2N5xn6__4aLwp0_WtovLjQ__fX0NB40WAofv1_fw0NDY3nD_r__hoaBwP6__4aBw3_A6WK7lZ4hQAA'
+                                    // settings: 'test';
+                                    settings: dump.body.data.settings
+                                }
+                            ]
+                        }
+                        params.index = params.index + 1;
+                        updateProgress();
+                        getQueueData(params, callback);
+                    });
                 }
-                params.index = params.index + 1;
-                updateProgress();
-                getQueueData(params, callback);
             });
         } else {
+            // console.log(params);
             callback(false, true);
         }
     }
 
     var updateSettings = function() {
         if(settingstype=='copyqueue') {
+            let properties = getInputElements();
+            let servers = getSelectedOptions(properties.destination);
+            var rows_selected = table.column(0).checkboxes.selected();
+            // console.log(properties);
+            if(servers.length < 1) {
+                alert('Please select at least one destination server!');
+                return;
+            }
+            if(properties.newname.value.trim() != '') {
+                if(rows_selected.length != 1) {
+                    alert('Only one queue may be selected when renaming!');
+                    return;
+                }
+                // alert('Renaming to ' + properties.newname.value.trim());
+            } else {
+                // alert('No new name specified, queues will be copied with their existing names');
+            }
             let c = confirm('Are you sure you want to copy the selected queues to the selected servers?');
             if(c===true) {
                  $('#settingsModal').modal('hide');
-                let properties = getInputElements();
                 let ports = [];
-                let servers = getSelectedOptions(properties.destination);
-                var rows_selected = table.column(0).checkboxes.selected();
                 let request = {
                     servers: servers,
                     objects: []
@@ -311,6 +362,9 @@
                             //let printerjobs = printerjob.createJobQueue(request);
                             //console.log(printerjobs);
                             initLog('Creating selected queues on destination servers...', request.servers.length * request.objects.length, false);
+                            if(properties.newname.value.trim() != '') {
+                                request.objects[0].name= properties.newname.value.trim();
+                            }
                             jobmanager.processJobs(request, '/api/printer/queue/create',
                             function(e) {
                                 appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message);
@@ -638,7 +692,7 @@
         let settingsmodal = $('#settingsModal');
         //console.log(configmodal);
         settingsmodal.find('.modal-title').text('Change Print Settings');
-        let options = {'dmDefaultSource': '', 'dmColor': ['1', '2'], 'dmDuplex': ['1', '2'], 'dmCollate': ['0', '1', '2']};
+        let options = {'dmDefaultSource': '', 'dmColor': ['1', '2'], 'dmDuplex': ['1', '2', '3'], 'dmCollate': ['0', '1', '2']};
         settingsmodal.find('.modal-body').html(createOptionsTable(options));
         addOptionsRow(options);
         settingsmodal.modal('show');
@@ -676,9 +730,116 @@
         settingsmodal.find('.modal-title').text('Copy Queue');
         let destination = document.getElementById('servers').cloneNode(true);
         destination.id = 'destination';
+        destination.className = 'mb-3 form-select';
         settingsmodal.find('.modal-body').html('');
         settingsmodal.find('.modal-body').append(destination);
+
+        let newname = document.createElement('input');
+        newname.type = 'text';
+        newname.id = 'newname';
+        newname.placeholder = 'optional';
+        newname.className = 'form-control mb-3';
+        let namelabel = document.createElement('label');
+        namelabel.htmlFor = 'newname';
+        namelabel.innerText = 'New Queue Name (Only one queue must be selected)';
+        settingsmodal.find('.modal-body').append(namelabel);
+        settingsmodal.find('.modal-body').append(newname);
+
         settingsmodal.modal('show');
+    }
+
+    var importPrinterSettings = function() {
+        let requests = createRequests();
+        if(requests.length < 1 ) {
+            alert('You must select at least one queue.');
+            return;
+        }
+        if(!exportedsettings) {
+            alert('You must export a queue\'s settings before importing.');
+            return;
+        }
+        let c = confirm('Are you sure you want to import settings for the selected queue(s)?');
+        if(c===true) {
+            let requests = createRequests({
+                settings: exportedsettings
+            });
+            let sum = 0;
+            for(let i = 0; i <= requests.length - 1; i++) {
+                sum = sum + requests[i].servers.length * requests[i].objects.length;
+            }
+            initLog('Submitting requests to import queue settings...', sum, true);
+            //console.log(requests);
+            runJobs(requests, '/api/printer/queue/ingest', 0,
+            function(e) {
+                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message);
+                updateProgress();
+            }, function(err, resp) {
+                //console.log('done');
+                let closeprogress = document.getElementById('closeprogress');
+                closeprogress.style.display = 'inline';
+            });
+        }
+    }
+
+    var exportPrinterSettings = function() {
+        let requests = createRequests();
+        if(requests.length < 1 || requests.length > 1) {
+            alert('You must select one queue.');
+            return;
+        }
+        let c = confirm('Are you sure you want to export the settings for the selected queue?');
+        if(c===true) {
+            let sum = 0;
+            for(let i = 0; i <= requests.length - 1; i++) {
+                sum = sum + requests[i].servers.length * requests[i].objects.length;
+            }
+            initLog('Submitting request to export settings...', sum, true);
+            //console.log(requests);
+            let settings;
+            let queue;
+            let server;
+            runJobs(requests, '/api/printer/queue/dump', 0,
+            function(e) {
+                // console.log(e);
+                queue = e.request.body.name;
+                exportedsettings = e.response.body.data.settings;
+                server = e.request.body.server;
+                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message + ' <a href="#" onclick="downloadExportedSettings(\''+server.trim()+'\', \''+queue.trim()+'\'); return false;">Download</a>');
+                updateProgress();
+            }, function(err, resp) {
+                //console.log('done');
+                let closeprogress = document.getElementById('closeprogress');
+                closeprogress.style.display = 'inline';
+                // console.log(downloadlink);
+            });
+        }
+    }
+
+    var downloadExportedSettings = function(server, queue) {
+        let options = {
+            path: '/api/printer/uploadsettings',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+
+        let body = {
+            settings: exportedsettings,
+            name: server + ' - ' + queue + '.dat'
+        }
+
+        httpRequest({options: options, body: body}, function(err, resp) {
+            if(err) {
+                if(err=='401') {
+                    alert('You are no longer logged in!');
+                } else {
+                    console.log(err);
+                }
+            } else {
+                location.href = '/api/printer/downloadsettings?file=' + server + ' - ' + queue + '.dat&name=' + queue + '.dat';
+            }
+        });
     }
 
     var clearQueue = function() {
@@ -1227,6 +1388,18 @@
                 {
                     extend: 'csvHtml5',
                     text: 'Export CSV'
+                },
+                {
+                    text: 'Export Settings',
+                    action: function() {
+                        exportPrinterSettings();
+                    }
+                },
+                {
+                    text: 'Import Settings',
+                    action: function() {
+                        importPrinterSettings();
+                    }
                 }
             ],
             data: data,
