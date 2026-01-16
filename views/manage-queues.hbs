@@ -67,6 +67,21 @@
     </div>
   </div>
 </div>
+<div class="modal fade" id="singleServerModal" tabindex="-1" aria-labelledby="singleServerModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content {{theme.class.bodyClass}}">
+      <div class="modal-header">
+        <h5 class="modal-title" id="singleServerModalLabel">Select a Server</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div  class="modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="exportPrinterSettings(false, true)" >Export</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div class="modal fade" id="activityModal" aria-labelledby="activityModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content {{theme.class.bodyClass}}">
@@ -96,7 +111,7 @@
     var deletelimit = {{config.deletelimit}}
     var modifylimit = {{config.modifylimit}}
     var groups = {{{JSONstringify groups}}}
-    var exportedsettings;
+    var exportedsettings = { exported: false };
 
     function clearGroupDropdown() {
         let groups = document.getElementById("groups");
@@ -754,14 +769,14 @@
             alert('You must select at least one queue.');
             return;
         }
-        if(!exportedsettings) {
+        if(!exportedsettings.exported) {
             alert('You must export a queue\'s settings before importing.');
             return;
         }
-        let c = confirm('Are you sure you want to import settings for the selected queue(s)?');
+        let c = confirm('Are you sure you want to import the cached settings exported from "' + exportedsettings.queue + '" on "' + exportedsettings.server + '" to the selected queue(s)?');
         if(c===true) {
             let requests = createRequests({
-                settings: exportedsettings
+                settings: exportedsettings.settings
             });
             let sum = 0;
             for(let i = 0; i <= requests.length - 1; i++) {
@@ -781,30 +796,65 @@
         }
     }
 
-    var exportPrinterSettings = function() {
+    var exportPrinterSettings = function(prompt, serverselected) {
         let requests = createRequests();
         if(requests.length < 1 || requests.length > 1) {
             alert('You must select one queue.');
             return;
         }
-        let c = confirm('Are you sure you want to export the settings for the selected queue?');
+        let c = false;
+        if(prompt) {
+            c = confirm('Are you sure you want to export the settings for the selected queue?');
+        } else {
+            c = true;
+        }
         if(c===true) {
             let sum = 0;
             for(let i = 0; i <= requests.length - 1; i++) {
                 sum = sum + requests[i].servers.length * requests[i].objects.length;
             }
+            if(requests[0].servers.length > 1) {
+                if(serverselected) {
+                    let singleservermodal = $('#singleServerModal');
+                    singleservermodal.modal('hide');
+                    let singleserver = document.getElementById('singleserver');
+                    requests[0].servers = [singleserver.options[singleserver.selectedIndex].value];
+                } else {
+                    let select = document.createElement('select');
+                    select.className = 'form-select';
+                    select.id = 'singleserver';
+                    for(let i = 0 ; i < requests[0].servers.length; i++) {
+                        let option = document.createElement('option');
+                        option.value = requests[0].servers[i];
+                        option.text = requests[0].servers[i];
+                        select.add(option);
+                    }
+                    let message = document.createElement('p');
+                    message.innerText = 'This queue exists on more than one server. Please select the server you\'d like to export the settings from:';
+                    let bodycontainer = document.createElement('div');
+                    bodycontainer.appendChild(message);
+                    bodycontainer.appendChild(select);
+                    let singleservermodal = $('#singleServerModal');
+                    //console.log(configmodal);
+                    // singleservermodal.find('.modal-title').html('Print Settings');
+                    singleservermodal.find('.modal-body').html(bodycontainer);
+                    singleservermodal.modal('show');
+                    return;
+                }
+            }
+            sum = 1; //export is always one job
             initLog('Submitting request to export settings...', sum, true);
-            //console.log(requests);
             let settings;
             let queue;
             let server;
             runJobs(requests, '/api/printer/queue/dump', 0,
             function(e) {
                 // console.log(e);
-                queue = e.request.body.name;
-                exportedsettings = e.response.body.data.settings;
-                server = e.request.body.server;
-                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message + ' <a href="#" onclick="downloadExportedSettings(\''+server.trim()+'\', \''+queue.trim()+'\'); return false;">Download</a>');
+                exportedsettings.queue = e.request.body.name;
+                exportedsettings.settings = e.response.body.data.settings;
+                exportedsettings.exported = true;
+                exportedsettings.server = e.request.body.server;
+                appendActivityLog(e.response.body.result + ' - ' + e.request.body.server + ' - ' + e.request.body.name + ' - ' + e.response.body.message + ' <a href="#" onclick="downloadExportedSettings(\''+exportedsettings.server.trim()+'\', \''+exportedsettings.queue.trim()+'\'); return false;">Download</a>');
                 updateProgress();
             }, function(err, resp) {
                 //console.log('done');
@@ -825,7 +875,7 @@
         }
 
         let body = {
-            settings: exportedsettings,
+            settings: exportedsettings.settings,
             name: server + ' - ' + queue + '.dat'
         }
 
@@ -1392,7 +1442,7 @@
                 {
                     text: 'Export Settings',
                     action: function() {
-                        exportPrinterSettings();
+                        exportPrinterSettings(true, false);
                     }
                 },
                 {
