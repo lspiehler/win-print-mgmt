@@ -750,6 +750,10 @@
         destination.id = 'destination';
         destination.className = 'mb-3 form-select';
         settingsmodal.find('.modal-body').html('');
+        let destinationlabel = document.createElement('label');
+        destinationlabel.htmlFor = 'destination';
+        destinationlabel.innerText = 'Destination server(s)';
+        settingsmodal.find('.modal-body').append(destinationlabel);
         settingsmodal.find('.modal-body').append(destination);
 
         let newname = document.createElement('input');
