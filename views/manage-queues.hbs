@@ -1454,13 +1454,13 @@
                     action: function() {
                         exportPrinterSettings(true, false);
                     }
-                },
+                }{{#if user.isAdmin}},
                 {
                     text: 'Import Settings',
                     action: function() {
                         importPrinterSettings();
                     }
-                }
+                }{{/if}}
             ],
             data: data,
             select: {
