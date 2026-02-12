@@ -1,5 +1,5 @@
 FROM node:lts-alpine
-LABEL maintainer Lyas Spiehler
+LABEL maintainer="Lyas Spiehler"
 
 RUN mkdir -p /var/node/win-print-mgmt
 
