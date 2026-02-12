@@ -857,6 +857,9 @@
             runJobs(requests, '/api/printer/queue/dump', 0,
             function(e) {
                 // console.log(e);
+                let cachedicon = document.getElementById('cachedexport');
+                cachedicon.className = "me-2 d-inline";
+                cachedicon.title = 'Cached export from ' + e.request.body.name + ' on ' + e.request.body.server;
                 exportedsettings.queue = e.request.body.name;
                 exportedsettings.settings = e.response.body.data.settings;
                 exportedsettings.exported = true;

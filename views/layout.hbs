@@ -22,7 +22,7 @@
     <script src="/js/datatables-select-bs5/select.bootstrap5.min.js"></script>
     <!--<link href="/css/datatables/jquery.dataTables.css" rel="stylesheet">-->
     <link href="/css/jquery-datatables-checkboxes/dataTables.checkboxes.css" rel="stylesheet">
-    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet" media="screen" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   </head>
   <body class="{{theme.class.bodyClass}}">
     <header>
@@ -61,6 +61,7 @@
                 </ul>
               </li>{{/if}}
             </ul>
+            <span style="color: #ffffff;" class="me-2 d-none" id="cachedexport"><i class="fa-solid fa-print"></i></span>
             {{#if config.msftauth}}<div class="form-check form-switch" style="margin-right: 50px;">
               <input id="theme" onchange="changeTheme()" class="form-check-input" type="checkbox" id="flexSwitchCheckDefault" {{#if theme.dark}}checked{{/if}}>
               <label id="darklabel" class="form-check-label {{#if theme.dark}}{{else}}text-light{{/if}}" for="flexSwitchCheckDefault">Dark</label>
