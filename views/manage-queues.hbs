@@ -378,7 +378,10 @@
                             //console.log(printerjobs);
                             initLog('Creating selected queues on destination servers...', request.servers.length * request.objects.length, false);
                             if(properties.newname.value.trim() != '') {
-                                request.objects[0].name= properties.newname.value.trim();
+                                request.objects[0].name = properties.newname.value.trim();
+                                if(request.objects[0].hasOwnProperty('sharename')) {
+                                    request.objects[0].sharename = properties.newname.value.trim();
+                                }
                             }
                             jobmanager.processJobs(request, '/api/printer/queue/create',
                             function(e) {
