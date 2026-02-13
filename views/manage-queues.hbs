@@ -831,6 +831,7 @@
                     let select = document.createElement('select');
                     select.className = 'form-select';
                     select.id = 'singleserver';
+                    requests[0].servers.sort();
                     for(let i = 0 ; i < requests[0].servers.length; i++) {
                         let option = document.createElement('option');
                         option.value = requests[0].servers[i];
