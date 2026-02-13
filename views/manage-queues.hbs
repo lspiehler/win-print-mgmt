@@ -747,6 +747,7 @@
         //console.log(configmodal);
         settingsmodal.find('.modal-title').text('Copy Queue');
         let destination = document.getElementById('servers').cloneNode(true);
+        destination.removeAttribute('onchange');
         destination.id = 'destination';
         destination.className = 'mb-3 form-select';
         settingsmodal.find('.modal-body').html('');
