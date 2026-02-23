@@ -730,7 +730,7 @@
         let settingsmodal = $('#settingsModal');
         //console.log(configmodal);
         settingsmodal.find('.modal-title').text('Change Queue Options');
-        let options = {'PortName': '', 'Location': '', 'DriverName': '', 'Comment': '', 'Shared': ['TRUE', 'FALSE'], 'ShareName': ''};
+        let options = {'PortName': '', 'Location': '', 'DriverName': '', 'Comment': '', 'Shared': ['TRUE', 'FALSE'], 'ShareName': '', 'StartTime': '', 'UntilTime': ''};
         settingsmodal.find('.modal-body').html(createOptionsTable(options));
         addOptionsRow(options);
         settingsmodal.modal('show');
