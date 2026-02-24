@@ -8,6 +8,7 @@
   "dependencies": {
     "basic-auth": "^2.0.1",
     "bootstrap": "^5.2.3",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.6",
     "csv-parse": "^5.3.6",
     "datatables.net": "^1.13.4",

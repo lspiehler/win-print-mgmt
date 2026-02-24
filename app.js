@@ -1,5 +1,6 @@
 var createError = require('http-errors');
 var express = require('express');
+const compression = require('compression');
 var exphbs  = require('express-handlebars');
 var expressSession = require('express-session');
 var path = require('path');
@@ -96,6 +97,9 @@ var helpers = require('handlebars-helpers')(['comparison', 'string', 'object']);
 app.engine('.hbs', exphbs.engine({ layoutsDir: 'views', defaultLayout: 'layout', extname: '.hbs' , helpers: helpers}));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'hbs');
+
+// Enable compression
+app.use(compression());
 
 app.enable('trust proxy', true);
 
